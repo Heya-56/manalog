@@ -17,6 +17,7 @@ Need sam  "MSI: https://github.com/aws/aws-sam-cli/releases/latest/download/AWS_
 
 Write-Host "1/5 AWS identity" -ForegroundColor Cyan
 aws sts get-caller-identity --output table
+if ($LASTEXITCODE -ne 0) { throw 'AWS credentials missing - open a separate PowerShell window and run: aws configure' }
 
 Write-Host "2/5 Tests" -ForegroundColor Cyan
 npm install --no-audit --no-fund
