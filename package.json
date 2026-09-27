@@ -1,0 +1,24 @@
+{
+  "name": "manalog-mcp",
+  "version": "0.1.0",
+  "description": "ManaLog — a voice-first import/export sourcing agent for Alexa+ (self-hosted MCP server on AWS Lambda + Amazon Bedrock). Built for island economies, useful to any small importer.",
+  "type": "module",
+  "main": "src/lambda.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/local.js",
+    "test": "node --test test/*.test.js",
+    "e2e": "node test/e2e-mcp-client.mjs"
+  },
+  "keywords": ["mcp", "alexa", "alexa-plus", "bedrock", "sourcing", "import", "export", "supply-chain", "white-label"],
+  "author": "Heianui Tapare — Hinova Digital",
+  "license": "AGPL-3.0-only",
+  "repository": { "type": "git", "url": "https://github.com/Heya-56/manalog" },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1141.0",
+    "@aws-sdk/client-dynamodb": "^3.1141.0",
+    "@aws-sdk/lib-dynamodb": "^3.1141.0",
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "zod": "^4.6.5"
+  }
+}

@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ManaLog — self-hosted MCP server for Alexa+ (Lambda Function URL + DynamoDB + Amazon Bedrock)
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: us.anthropic.claude-sonnet-4-5-20250929-v1:0
+    Description: Bedrock model or inference profile id (must be enabled in Bedrock "Model access")
+  BedrockEnabled:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+  ImportYetiApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Leave empty to run on bundled demo data
+  EnforcePlans:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+    Description: true on the hosted/paid service; false for a private self-hosted instance
+  TenantsJson:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: JSON array of tenants (API keys, plans, brands) — see docs/WHITE_LABEL.md
+  UpgradeUrl:
+    Type: String
+    Default: https://hinovadigitalcorp.com/manalog
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 512
+    Timeout: 30
+
+Resources:
+  ManaLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+
+  ManaLogFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: src/lambda.handler
+      Description: ManaLog MCP server (Streamable HTTP, MCP 2025-11-25) + voice agent
+      Environment:
+        Variables:
+          MANALOG_TABLE: !Ref ManaLogTable
+          MANALOG_STORAGE: dynamodb
+          BEDROCK_ENABLED: !Ref BedrockEnabled
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          IY_API_KEY: !Ref ImportYetiApiKey
+          MANALOG_ENFORCE_PLANS: !Ref EnforcePlans
+          MANALOG_TENANTS_JSON: !Ref TenantsJson
+          MANALOG_UPGRADE_URL: !Ref UpgradeUrl
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref ManaLogTable }
+        - Statement:
+            - Effect: Allow
+              Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+              Resource: '*'
+      FunctionUrlConfig:
+        AuthType: NONE   # app-level API keys; see docs/SECURITY.md
+        Cors:
+          AllowOrigins: ['*']
+          AllowMethods: ['*']
+          AllowHeaders: ['content-type', 'authorization', 'x-api-key', 'x-manalog-user', 'mcp-session-id', 'mcp-protocol-version']
+
+Outputs:
+  ConsoleUrl:
+    Description: Voice console (Alexa+ simulation)
+    Value: !GetAtt ManaLogFunctionUrl.FunctionUrl
+  McpEndpoint:
+    Description: MCP Streamable HTTP endpoint to register in Alexa+ / any MCP client
+    Value: !Sub '${ManaLogFunctionUrl.FunctionUrl}mcp'
+  TableName:
+    Value: !Ref ManaLogTable

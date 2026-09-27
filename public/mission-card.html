@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{BRAND_NAME}} mission</title>
+<style>
+  :root { --brand: {{BRAND_COLOR}}; --ink: #0f1f24; --muted: #5b6b70; --line: #e3ecee; --bg: #ffffff; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e8f2f3; --muted: #9fb3b7; --line: #22363b; --bg: #0d1a1e; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: var(--bg); }
+  .wrap { padding: 14px; }
+  h1 { font-size: 15px; margin: 0 0 2px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .row { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .score { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; background: var(--brand); font-size: 13px; }
+  .name { font-weight: 600; }
+  .meta { color: var(--muted); font-size: 12px; }
+  .price { text-align: right; font-variant-numeric: tabular-nums; }
+  .price b { display: block; }
+  pre { white-space: pre-wrap; background: color-mix(in srgb, var(--brand) 8%, transparent); border-radius: 8px; padding: 10px; font: 12px/1.45 ui-monospace, monospace; }
+  .note { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  .empty { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="empty">Waiting for mission data…</p></div>
+<script>
+// Minimal MCP App: renders the tool's structuredContent. Works with hosts implementing MCP Apps
+// (ui/notifications/tool-result) and with a plain postMessage({structuredContent}) for simulators.
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function render(m) {
+  if (!m || !m.shortlist) return;
+  const rows = m.shortlist.map((s) => `
+    <div class="row">
+      <div class="score">${esc(s.score)}</div>
+      <div><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.country)} · MOQ ${esc(s.moq ?? '?')} · ${esc((s.reasons || [])[0] || '')}</div></div>
+      <div class="price">${s.localUnit ? `<b>${esc(s.localUnit.unit)} ${esc(s.localUnit.currency)}</b><span class="meta">per unit landed</span>` : '<span class="meta">price on request</span>'}</div>
+    </div>`).join('');
+  document.getElementById('app').innerHTML = `
+    <h1>${esc(m.input?.quantity)} × ${esc(m.input?.product)} → ${esc(m.input?.destination)}</h1>
+    <div class="sub">Mission ${esc(m.id)} · ${esc(m.status)} · data: ${esc(m.dataSource)}</div>
+    ${rows}
+    ${m.rfq ? `<h1 style="margin-top:12px">RFQ draft → ${esc(m.rfq.to)} (${esc(m.rfq.status)})</h1><pre>${esc(m.rfq.text)}</pre>` : ''}
+    <div class="note">Landed costs are estimates — confirm HS codes and rates with a licensed customs broker.</div>`;
+}
+window.addEventListener('message', (e) => {
+  const d = e.data || {};
+  if (d.method === 'ui/notifications/tool-result') render(d.params?.structuredContent);
+  else if (d.structuredContent) render(d.structuredContent);
+});
+try { window.parent.postMessage({ jsonrpc: '2.0', id: 1, method: 'ui/initialize', params: { appInfo: { name: '{{BRAND_NAME}} mission card', version: '0.1.0' }, appCapabilities: {}, protocolVersion: '2025-11-25' } }, '*'); } catch {}
+</script>
+</body>
+</html>
