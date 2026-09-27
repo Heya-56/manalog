@@ -34,7 +34,9 @@ Write-Host "4/5 SAM build + deploy" -ForegroundColor Cyan
 Set-Location infra
 sam build -t template.yaml
 if ($LASTEXITCODE -ne 0) { throw 'sam build failed' }
-sam deploy --no-confirm-changeset --region $Region --parameter-overrides "BedrockEnabled=$bedrock" "BedrockModelId=$Model" "ImportYetiApiKey=$IyKey" "EnforcePlans=true"
+$params = @("BedrockEnabled=$bedrock", "BedrockModelId=$Model", "EnforcePlans=true")
+if ($IyKey) { $params += "ImportYetiApiKey=$IyKey" }
+sam deploy --no-confirm-changeset --region $Region --parameter-overrides $params
 if ($LASTEXITCODE -ne 0) { throw 'sam deploy failed' }
 
 Write-Host "5/5 Smoke test" -ForegroundColor Cyan
