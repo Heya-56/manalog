@@ -73,7 +73,7 @@ Open http://localhost:8787, click a suggestion chip or the mic (Chrome/Edge), an
 
 ## Deploy to AWS (≈5 minutes)
 
-Prerequisites: AWS account, [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html), and Bedrock **model access** enabled for your chosen Claude model in `us-east-1`.
+Prerequisites: AWS account, [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html), and Bedrock **model access** enabled for your chosen Claude model in your region (default `us-west-2`).
 
 ```bash
 cd infra

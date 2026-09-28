@@ -8,7 +8,7 @@ Owner speaks French — reply in French, keep code/docs in English.
 - Deploy: `powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 [-IyKey <key>]`
 
 ## When asked "déploie" / "deploy"
-1. Check `aws sts get-caller-identity`; if it fails, guide `aws configure` (Access key from IAM user with AdministratorAccess for the hackathon, region us-east-1).
+1. Check `aws sts get-caller-identity`; if it fails, guide `aws configure` (Access key from IAM user with AdministratorAccess for the hackathon, region us-west-2 (Oregon — closest AWS US region to Tahiti via the Honotua cable)).
 2. Check `sam --version`; if missing: `winget install Amazon.SAM-CLI`.
 3. Run `scripts/deploy.ps1`. If Bedrock is not enabled, tell the owner to open Bedrock console → Model access → enable Anthropic Claude Sonnet, then re-run.
 4. Paste ConsoleUrl + McpEndpoint into `docs/SUBMISSION.md` (Testing instructions), commit, push.

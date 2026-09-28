@@ -4,7 +4,7 @@
 #         .\scripts\deploy.ps1 -IyKey "xxxx"   (live ImportYeti data)
 param(
   [string]$IyKey = "",
-  [string]$Region = "us-east-1",
+  [string]$Region = "us-west-2",
   [string]$Model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 )
 $ErrorActionPreference = "Stop"
