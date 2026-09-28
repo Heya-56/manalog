@@ -27,8 +27,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
 Write-Host "3/5 Bedrock model access check ($Model)" -ForegroundColor Cyan
 $probe = '{"messages":[{"role":"user","content":[{"text":"ping"}]}],"inferenceConfig":{"maxTokens":5}}'
 $probe | Out-File -Encoding ascii "$env:TEMP\ml-probe.json"
+# PS 5.1 turns native stderr into a terminating error under "Stop"; the probe must be allowed to fail.
+$ErrorActionPreference = "Continue"
 aws bedrock-runtime converse --region $Region --model-id $Model --cli-input-json "file://$env:TEMP\ml-probe.json" 2>&1 | Out-Null
-if ($LASTEXITCODE -eq 0) { Write-Host "Bedrock OK" -ForegroundColor Green; $bedrock = "true" }
+$probeOk = ($LASTEXITCODE -eq 0)
+$ErrorActionPreference = "Stop"
+if ($probeOk) { Write-Host "Bedrock OK" -ForegroundColor Green; $bedrock = "true" }
 else { Write-Host "Bedrock not reachable -> enable model access in the Bedrock console (Model access). Deploying with BedrockEnabled=false for now." -ForegroundColor Yellow; $bedrock = "false" }
 
 Write-Host "4/5 SAM build + deploy" -ForegroundColor Cyan

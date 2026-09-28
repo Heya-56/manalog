@@ -44,8 +44,8 @@ alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb,
 ## Testing instructions
 - Repo: https://github.com/Heya-56/manalog (AGPL-3.0)
 - Local: `npm install && npm start`, then open http://localhost:8787 (no keys needed, demo data)
-- Hosted console: `<ConsoleUrl>`
-- MCP endpoint: `<McpEndpoint>` with header `x-api-key: demo-judges-2026` (Pro plan, free until judging ends)
+- Hosted console: https://wp4itqxfeguy5geyvssszy3aa40mwrro.lambda-url.us-west-2.on.aws/
+- MCP endpoint: https://wp4itqxfeguy5geyvssszy3aa40mwrro.lambda-url.us-west-2.on.aws/mcp with header `x-api-key: demo-judges-2026` (Pro plan, free until judging ends)
 - Demo script: "Find me 2000 glass bottles for my monoi" → "Compare the suppliers" → "Send it" → "Who buys vanilla in the US?"
 
 ## Open Source mini-challenge
