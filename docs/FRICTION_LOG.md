@@ -35,19 +35,28 @@
 - **Task:** Enable Claude on Bedrock for the agent loop.
 - **Steps:** Probed `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (cross-region inference profile) in us-west-2 with `aws bedrock-runtime converse` from `scripts/deploy.ps1`.
 - **Expected:** A clear "model access not enabled" vs "IAM not allowed" signal.
-- **Actual:** Both cases surface as `AccessDeniedException`; ours was IAM (`no identity-based policy allows the bedrock:InvokeModel action`). Once the deploy user had AdministratorAccess the probe passed with no separate model-access request. Separately, the probe crashed the script on Windows PowerShell 5.1: under `$ErrorActionPreference = "Stop"`, stderr from a native command piped with `2>&1` becomes a terminating error, so the intended `BedrockEnabled=false` fallback never ran.
+- **Actual:** Both cases surface as `AccessDeniedException`; ours was first IAM (`no identity-based policy allows the bedrock:InvokeModel action`). The Bedrock console no longer has the "Model access" page that our runbook and many tutorials point to; instead, Anthropic models require submitting the Anthropic **use case form** before first use. Only after that form did Claude Sonnet 4.5 answer in the us-west-2 playground. Separately, the probe crashed the script on Windows PowerShell 5.1: under `$ErrorActionPreference = "Stop"`, stderr from a native command piped with `2>&1` becomes a terminating error, so the intended `BedrockEnabled=false` fallback never ran.
 - **Severity:** Medium
 - **Workaround:** Relaxed `$ErrorActionPreference` around the probe so a failed probe falls back to `BedrockEnabled=false`.
-- **Suggestion:** Distinct error codes (or a hint in the message) for missing model access vs missing IAM permission.
+- **Suggestion:** Distinct error codes (or a hint in the message) for missing model access vs missing IAM permission, and a pointer to the Anthropic use case form in the `AccessDeniedException` text now that the Model access page is gone.
 
 ## 6. IAM user created without permissions
 - **Task:** Deploy with `sam deploy` from a fresh IAM user (`manalog-deployer`).
 - **Steps:** Created the user and access key, ran `aws configure`, then `scripts/deploy.ps1`.
 - **Expected:** Deploy succeeds, or fails up front with a clear permission message.
-- **Actual:** `aws sts get-caller-identity` succeeds without any policy, so the identity check passed; `sam deploy` then failed at `cloudformation:CreateChangeSet` on `aws-sam-cli-managed-default`. It took two console attempts before AdministratorAccess was actually attached to the right user.
+- **Actual:** `aws sts get-caller-identity` succeeds without any policy, so the identity check passed; `sam deploy` then failed at `cloudformation:CreateChangeSet` on `aws-sam-cli-managed-default`. It took two console attempts: the policy search for "AdministratorAccess" also lists `AdministratorAccess-Amplify`, which was picked first and does not grant CloudFormation/IAM rights for SAM.
 - **Severity:** Medium
 - **Workaround:** Attached AdministratorAccess to the user (hackathon only) and verified with `aws iam list-attached-user-policies`.
-- **Suggestion:** SAM CLI could run a permissions pre-flight (e.g. IAM policy simulator) before creating the managed stack.
+- **Suggestion:** SAM CLI could run a permissions pre-flight (e.g. IAM policy simulator) before creating the managed stack; the IAM console could flag near-identical managed policy names.
+
+## 8. winget missing on Windows 10 Enterprise LTSC
+- **Task:** Install the AWS SAM CLI with `winget install Amazon.SAM-CLI`, as the runbook said.
+- **Steps:** Ran `winget` on Windows 10 Enterprise LTSC 2021.
+- **Expected:** winget available, as on consumer Windows 10/11.
+- **Actual:** LTSC ships without the Microsoft Store / App Installer, so `winget` does not exist.
+- **Severity:** Low
+- **Workaround:** Installed the AWS CLI and SAM CLI from their MSI installers (links now printed by `scripts/deploy.ps1`).
+- **Suggestion:** AWS install docs could lead with the MSI for Windows and mention LTSC/Server editions lacking winget.
 
 ## 7. Antivirus HTTPS scanning breaks AWS CLI, SAM and Node on Windows
 - **Task:** Run the AWS CLI, SAM and the e2e MCP client from a Windows 10 LTSC machine with Avast.
