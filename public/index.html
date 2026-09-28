@@ -176,7 +176,7 @@ function renderCard({ name, data }) {
       ${data.shortlist.map((s) => `<div class="srow"><div class="score">${esc(s.score)}</div>
         <div><div class="sname">${esc(s.name)}</div><div class="smeta">${esc(s.country)} · MOQ ${esc(s.moq ?? '?')}${s.transitDays ? ' · ~' + esc(s.transitDays) + ' days' : ''}</div>
         <details class="why"><summary>Why this score</summary>${(s.reasons || []).map(esc).join('<br>')}</details></div>
-        <div class="sprice">${s.localUnit ? `<b>${fmt(s.localUnit.unit)} ${esc(s.localUnit.currency)}</b><span class="smeta">per unit landed</span>` : '<span class="smeta">price on request</span>'}</div></div>`).join('')}
+        <div class="sprice">${s.localUnit ? `<b>${fmt(s.localUnit.unit)} ${esc(s.localUnit.currency)}</b><span class="smeta">per unit landed${s.priceSource === 'your target price' ? ' · at your target price' : ''}</span>` : '<span class="smeta">price on request</span>'}</div></div>`).join('')}
       ${data.rfq ? `<div class="card-title" style="margin-top:14px">RFQ draft → ${esc(data.rfq.to)} <span class="pill">${esc(data.rfq.status)}</span></div><pre class="rfq">${esc(data.rfq.text)}</pre>` : ''}
       ${data.steps ? `<details><summary class="smeta">Agent steps (${data.steps.length})</summary><ol class="steps">${data.steps.map((s) => `<li>${esc(s.step)}</li>`).join('')}</ol></details>` : ''}
       <p class="note">Landed costs are estimates — confirm HS codes and rates with a licensed customs broker.</p>`;

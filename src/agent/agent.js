@@ -11,8 +11,8 @@ const jsonSchema = (shape) => { const { $schema, ...s } = z.toJSONSchema(z.objec
 const toolSpecs = () => tools.map((t) => ({ toolSpec: { name: t.name, description: t.description, inputSchema: { json: jsonSchema(t.schema) } } }));
 
 const system = (brand) => `You are ${brand.voiceName}, a voice assistant (Alexa+ style) for small importers/exporters, built for island makers in French Polynesia.
-Rules: speak in 1-3 short sentences; numbers rounded; say currency as XPF for Tahiti. Use tools for any factual answer.
-For open sourcing requests use start_sourcing_mission. "Send it"/"approve" → approve_rfq. "Compare"/"last time" → get_mission.
+Rules: your reply is read aloud by a speech engine: plain text only, NO markdown (no asterisks, bullets, headings or emojis); speak in 1-3 short sentences; numbers rounded; say currency as XPF for Tahiti. Use tools for any factual answer.
+For open sourcing requests use start_sourcing_mission; if the user mentions a unit price (e.g. "about 40 cents each"), pass it as targetUnitPriceUsd. "Send it"/"approve" → approve_rfq. "Compare"/"last time" → get_mission.
 Never claim an email was sent: the user sends it from the card. Mention estimates are indicative. Reply in the user's language (French or English).`;
 
 export async function runAgent(ctx, { text, history = [] }) {
@@ -66,6 +66,8 @@ async function routeOffline(ctx, raw, calls) {
     return call('estimate_landed_cost', { unitPriceUsd: 0.34, quantity: numberIn(t), origin: 'Vietnam', destination: 'PF', product: productIn(t) ?? 'glass bottle' });
   }
   const p = productIn(t);
-  if (p) return call('start_sourcing_mission', { product: p, quantity: numberIn(t) ?? 1000, destination: /\b(us|usa|états-unis)\b/.test(t) ? 'US' : 'PF', language: fr ? 'fr' : 'en' });
+  const cents = t.match(/(\d+(?:[.,]\d+)?)\s*(cents?|centimes?)/); const usd = t.match(/\$\s?(\d+(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)\s?(?:usd|dollars?)/);
+  const target = cents ? Number(cents[1].replace(',', '.')) / 100 : usd ? Number((usd[1] ?? usd[2]).replace(',', '.')) : undefined;
+  if (p) return call('start_sourcing_mission', { product: p, quantity: numberIn(t.replace(/(\d+(?:[.,]\d+)?)\s*(cents?|centimes?|usd|dollars?)|\$\s?\d+(?:[.,]\d+)?/g, '')) ?? 1000, ...(target ? { targetUnitPriceUsd: target } : {}), destination: /\b(us|usa|états-unis)\b/.test(t) ? 'US' : 'PF', language: fr ? 'fr' : 'en' });
   return { reply: fr ? 'Je peux trouver des fournisseurs, estimer un coût rendu à Tahiti, ou trouver des acheteurs aux États-Unis. Essayez : trouve-moi 2000 flacons pour mon monoï.' : 'I can find suppliers, estimate landed cost to Tahiti, or find US buyers. Try: find me 2000 glass bottles for my monoi.', calls, engine: 'offline-router' };
 }

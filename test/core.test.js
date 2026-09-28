@@ -148,3 +148,12 @@ test('cost guard: anonymous users never hit live data or Bedrock when plans are 
     delete process.env.MANALOG_ENFORCE_PLANS;
   }
 });
+
+test('target price fallback: landed cost computed when supplier has no price', async () => {
+  _resetStoreForTests();
+  const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'tp' });
+  const r = await runAgent(ctx, { text: 'Find me 2000 glass bottles for my monoi at about 40 cents each' });
+  assert.equal(r.calls[0].args.quantity, 2000);
+  assert.equal(r.calls[0].args.targetUnitPriceUsd, 0.4);
+  assert.ok(r.calls[0].data.shortlist.every((s) => s.localUnit), 'every shortlisted supplier has a landed cost');
+});

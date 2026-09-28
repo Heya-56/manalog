@@ -81,6 +81,7 @@ export const tools = [
     schema: {
       product: z.string().min(2), quantity: z.number().int().positive().default(1000), destination: dest,
       unitWeightKg: z.number().positive().default(0.2), maxUnitLandedUsd: z.number().positive().optional().describe('Budget per unit, landed'),
+      targetUnitPriceUsd: z.number().positive().optional().describe('Expected factory (FOB) price per unit in USD, used for landed cost when the supplier price is unknown (customs data has no prices)'),
       priority: z.enum(['balanced', 'price', 'speed']).default('balanced'), mode: z.enum(['sea', 'air', 'post']).default('sea'),
       language: z.enum(['en', 'fr']).default('en').describe('Language of the RFQ email'), buyerName: z.string().optional(),
     },

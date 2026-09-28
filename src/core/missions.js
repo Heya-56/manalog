@@ -13,10 +13,10 @@ export async function draftRfq({ supplier, product, quantity, destination, buyer
   if (bedrockEnabled()) {
     const text = await generate(
       `You write concise, professional B2B request-for-quotation emails for a small importer. Language: ${language === 'fr' ? 'French' : 'English'}. ` +
-      'Include: subject line, short intro, product & quantity, destination port and Incoterm question (FOB vs CIF), requested info (unit price tiers, MOQ, lead time, samples, certifications, HS code), and a polite close. Under 170 words. No placeholders in brackets except the sender signature.',
+      'Plain text only, no markdown (no asterisks or bold). First line: "Subject: ..." (or "Objet : ..." in French). Include: subject line, short intro, product & quantity, destination port and Incoterm question (FOB vs CIF), requested info (unit price tiers, MOQ, lead time, samples, certifications, HS code), and a polite close. Under 170 words. No placeholders in brackets except the sender signature.',
       JSON.stringify(facts), { maxTokens: 500 },
     );
-    return { generatedBy: 'bedrock', text };
+    return { generatedBy: 'bedrock', text: text.replace(/\*\*|__|^#+\s*/gm, '').trim() };
   }
   const fr = language === 'fr';
   const port = destination === 'PF' ? (fr ? 'Papeete, Polynésie française' : 'Papeete, French Polynesia') : destination;
@@ -27,7 +27,7 @@ export async function draftRfq({ supplier, product, quantity, destination, buyer
 }
 
 export async function runMission(ctx, input) {
-  const { product, quantity = 1000, destination = 'PF', unitWeightKg = 0.2, maxUnitLandedUsd, priority = 'balanced', mode = 'sea', language = 'en', buyerName } = input;
+  const { product, quantity = 1000, destination = 'PF', unitWeightKg = 0.2, maxUnitLandedUsd, targetUnitPriceUsd, priority = 'balanced', mode = 'sea', language = 'en', buyerName } = input;
   const steps = [];
   const log = (s) => steps.push({ at: new Date().toISOString(), step: s });
 
@@ -45,8 +45,10 @@ export async function runMission(ctx, input) {
   log(`Scored ${scored.length} suppliers on track record, recency, proximity to ${destination}, MOQ fit and reachability`);
 
   const withCost = scored.map((s) => {
-    if (!s.unitPriceUsd) return { ...s, landed: null };
-    const landed = estimateLandedCost({ unitPriceUsd: s.unitPriceUsd, quantity, unitWeightKg, origin: s.country, destination, mode, product: found.product }, ctx.tenant.overrides ?? {});
+    // Customs data has volumes, not prices: fall back to the user's target FOB price when the supplier has none.
+    const price = s.unitPriceUsd ?? targetUnitPriceUsd;
+    if (!price) return { ...s, landed: null };
+    const landed = estimateLandedCost({ unitPriceUsd: price, quantity, unitWeightKg, origin: s.country, destination, mode, product: found.product }, ctx.tenant.overrides ?? {});
     return { ...s, landed };
   });
   log(`Estimated landed cost to ${destination} by ${mode} for suppliers with known prices`);
@@ -81,7 +83,7 @@ export async function runMission(ctx, input) {
     input: { product: found.product, quantity, destination, unitWeightKg, maxUnitLandedUsd, priority, mode },
     shortlist: shortlist.map((s) => ({
       slug: s.slug, name: s.name, country: s.country, score: s.score, reasons: s.reasons, moq: s.moq, email: s.email, website: s.website,
-      unitPriceUsd: s.unitPriceUsd, unitLandedUsd: s.landed?.unitLandedUsd ?? null, localUnit: s.landed?.local ?? null, transitDays: s.landed?.transitDays ?? null,
+      unitPriceUsd: s.unitPriceUsd ?? targetUnitPriceUsd ?? null, priceSource: s.unitPriceUsd ? 'supplier' : (targetUnitPriceUsd ? 'your target price' : null), unitLandedUsd: s.landed?.unitLandedUsd ?? null, localUnit: s.landed?.local ?? null, transitDays: s.landed?.transitDays ?? null,
     })),
     rfq: { to: top.name, email: top.email, ...rfq, status: 'draft' },
     steps, dataSource: found.source,
