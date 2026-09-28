@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { tools } from '../mcp/tools.js';
 import { executeTool } from '../mcp/server.js';
 import { bedrockEnabled, converse } from '../core/bedrock.js';
+import { hasFeature } from '../core/tenants.js';
 
 const jsonSchema = (shape) => { const { $schema, ...s } = z.toJSONSchema(z.object(shape), { io: 'input' }); return s; };
 const toolSpecs = () => tools.map((t) => ({ toolSpec: { name: t.name, description: t.description, inputSchema: { json: jsonSchema(t.schema) } } }));
@@ -16,7 +17,8 @@ Never claim an email was sent: the user sends it from the card. Mention estimate
 
 export async function runAgent(ctx, { text, history = [] }) {
   const calls = [];
-  if (!bedrockEnabled()) return routeOffline(ctx, text, calls);
+  // Bedrock (paid LLM calls) only for tenants whose plan includes agentic missions; others get the free router.
+  if (!bedrockEnabled() || !hasFeature(ctx, 'mission')) return routeOffline(ctx, text, calls);
 
   const messages = [
     ...history.slice(-6).filter((h) => h.text).map((h) => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: [{ text: h.text }] })),

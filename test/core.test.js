@@ -126,3 +126,25 @@ test('Lambda handler speaks MCP 2025-11-25 (initialize + tools/list)', async () 
   const bad = await handler({ rawPath: '/mcp', requestContext: { http: { method: 'POST' } }, headers: { host: 'x', 'x-api-key': 'nope' }, body: '{}' });
   assert.equal(bad.statusCode, 401);
 });
+
+test('cost guard: anonymous users never hit live data or Bedrock when plans are enforced', async () => {
+  _resetStoreForTests(); _resetTenantsForTests();
+  const { config } = await import('../src/core/config.js');
+  const prev = { mode: config.dataMode, bedrock: config.bedrock.enabled };
+  config.dataMode = 'live'; config.bedrock.enabled = true;
+  process.env.MANALOG_ENFORCE_PLANS = 'true';
+  const realFetch = globalThis.fetch;
+  let liveCalls = 0;
+  globalThis.fetch = async (...a) => { liveCalls++; return realFetch(...a); };
+  try {
+    const anon = resolveContext({});
+    const r = await executeTool(anon, 'find_suppliers', { product: 'vanilla' });
+    assert.equal(r.data.source, 'demo');
+    assert.equal(liveCalls, 0, 'no ImportYeti call for community tenants');
+    const a = await runAgent(anon, { text: 'Who buys vanilla in the US?' });
+    assert.equal(a.engine, 'offline-router', 'no Bedrock for community tenants');
+  } finally {
+    globalThis.fetch = realFetch; config.dataMode = prev.mode; config.bedrock.enabled = prev.bedrock;
+    delete process.env.MANALOG_ENFORCE_PLANS;
+  }
+});

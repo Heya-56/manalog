@@ -1,7 +1,7 @@
 // Tool registry — single source of truth used by BOTH the MCP server (Alexa+) and the Bedrock voice agent.
 // Each handler returns { speech, data }: `speech` is short and voice-ready, `data` is structured for cards/UIs.
 import { z } from 'zod';
-import { rankSuppliers, rankBuyers, searchShipments, knownDemoProducts } from '../core/importyeti.js';
+import { rankSuppliers, rankBuyers, searchShipments, knownDemoProducts, dataMode } from '../core/importyeti.js';
 import { rankScored } from '../core/scoring.js';
 import { estimateLandedCost, listDestinations } from '../core/landed-cost.js';
 import { runMission, listMissions, getMission, updateRfqStatus } from '../core/missions.js';
@@ -165,7 +165,7 @@ export const tools = [
       const u = await usage(ctx);
       return {
         speech: `You're on the ${u.planLabel} plan of ${ctx.tenant.brand.name}: ${u.calls} of ${u.limit} calls used this month.`,
-        data: { ...u, brand: ctx.tenant.brand, destinations: listDestinations(ctx.tenant.overrides ?? {}), dataMode: config.dataMode, demoProducts: config.dataMode === 'demo' ? knownDemoProducts() : null, upgradeUrl: config.upgradeUrl },
+        data: { ...u, brand: ctx.tenant.brand, destinations: listDestinations(ctx.tenant.overrides ?? {}), dataMode: dataMode(), demoProducts: dataMode() === 'demo' ? knownDemoProducts() : null, upgradeUrl: config.upgradeUrl },
       };
     },
   },

@@ -2,7 +2,13 @@
 // demo mode serves bundled fictional fixtures with the same normalized shape.
 // Every function returns normalized objects so the rest of the agent never depends on the raw API.
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { config } from './config.js';
+
+// Per-request data scope: tenants without the live_data feature always get demo data,
+// so anonymous/community traffic can never spend the operator's ImportYeti credits.
+export const dataScope = new AsyncLocalStorage();
+export const dataMode = () => dataScope.getStore()?.mode ?? config.dataMode;
 import { suppliersByProduct, buyersByProduct, aliases } from '../../data/fixtures.js';
 
 export function normalizeProduct(q) {
@@ -46,20 +52,20 @@ function normSupplier(r) {
 export async function rankSuppliers(product, { limit = 5, country } = {}) {
   const p = normalizeProduct(product);
   let list;
-  if (config.dataMode === 'live') {
+  if (dataMode() === 'live') {
     const b = await iy(`/product/${encodeURIComponent(p)}/suppliers`, { page_size: Math.min(limit * 2, 50) });
     list = rows(b).map(normSupplier);
   } else {
     list = (suppliersByProduct[p] ?? fuzzy(suppliersByProduct, p) ?? []).map(normSupplier);
   }
   if (country) list = list.filter((s) => (s.country || '').toLowerCase().includes(country.toLowerCase()));
-  return { product: p, source: config.dataMode, suppliers: list.slice(0, limit) };
+  return { product: p, source: dataMode(), suppliers: list.slice(0, limit) };
 }
 
 /** Rank US companies importing a product — export prospecting. */
 export async function rankBuyers(product, { limit = 5 } = {}) {
   const p = normalizeProduct(product);
-  if (config.dataMode === 'live') {
+  if (dataMode() === 'live') {
     const b = await iy(`/product/${encodeURIComponent(p)}/companies`, { page_size: Math.min(limit, 50) });
     return {
       product: p, source: 'live',
@@ -75,7 +81,7 @@ export async function rankBuyers(product, { limit = 5 } = {}) {
 
 /** Full profile for one supplier. */
 export async function supplierProfile(slug) {
-  if (config.dataMode === 'live') return normSupplier({ slug, ...(await iy(`/supplier/${encodeURIComponent(slug)}`)).data });
+  if (dataMode() === 'live') return normSupplier({ slug, ...(await iy(`/supplier/${encodeURIComponent(slug)}`)).data });
   for (const list of Object.values(suppliersByProduct)) {
     const s = list.find((x) => x.slug === slug);
     if (s) return normSupplier(s);
@@ -85,7 +91,7 @@ export async function supplierProfile(slug) {
 
 /** Raw shipment search (PowerQuery syntax supported in live mode). */
 export async function searchShipments(query, { pageSize = 10, startDate, endDate } = {}) {
-  if (config.dataMode === 'live') {
+  if (dataMode() === 'live') {
     const b = await iy('/powerquery/us-import/bols', { product_description: query, page_size: pageSize, start_date: startDate, end_date: endDate });
     return {
       source: 'live', total: b?.data?.totalCount ?? null, creditsRemaining: b?.creditsRemaining ?? null,

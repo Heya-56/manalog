@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { tools, MISSION_CARD_URI } from './tools.js';
 import { hasFeature, meter, upgradeMessage } from '../core/tenants.js';
+import { dataScope } from '../core/importyeti.js';
+import { config } from '../core/config.js';
 import { listDestinations } from '../core/landed-cost.js';
 
 const cardHtml = readFileSync(new URL('../../public/mission-card.html', import.meta.url), 'utf8');
@@ -18,7 +20,8 @@ export async function executeTool(ctx, name, rawArgs = {}) {
   if (!m.ok) return { error: true, speech: `Monthly limit reached (${m.limit} calls). ${upgradeMessage(ctx, 'more calls')}`, data: { upgrade: true } };
   const args = z.object(t.schema).parse(rawArgs);
   try {
-    return await t.handler(ctx, args);
+    const mode = hasFeature(ctx, 'live_data') ? config.dataMode : 'demo';
+    return await dataScope.run({ mode }, () => t.handler(ctx, args));
   } catch (e) {
     return { error: true, speech: `Sorry, that failed: ${e.message}`, data: null };
   }
