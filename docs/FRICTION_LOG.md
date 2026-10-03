@@ -66,3 +66,12 @@
 - **Severity:** High (blocks deployment with an opaque error)
 - **Workaround:** Exported the Avast root from the Windows store to PEM and set `AWS_CA_BUNDLE` / `NODE_EXTRA_CA_CERTS` for the session; the e2e parse error needs an Avast exception for `*.amazonaws.com` / `*.on.aws`.
 - **Suggestion:** AWS CLI v2 on Windows could optionally trust the OS certificate store, and the TLS error could mention interception proxies.
+
+## 9. ImportYeti live response shape differs from what we coded against
+- **Task:** Score live suppliers (country, 12-month shipments, last shipment date, website).
+- **Steps:** Called `GET /v1.0/product/glass%20bottle/suppliers?page_size=3`, `GET /v1.0/supplier/{slug}` and `GET /v1.0/product/vanilla/companies?page_size=3` with the `IYApiKey` header.
+- **Expected:** The fields our normalizer guessed (`country`, `shipments_last_12m`, `most_recent_shipment`, `slug`), consistent across endpoints.
+- **Actual:** Every live supplier came back without country, volume or date, so all scored 15/100. The real fields are: search rows → `supplier_link` (slug inside a path), `supplier_country_code` (ISO code, not a name), `supplier_total_shipments` (all-time), and no 12-month count or last-shipment date at all; profile → `address_country`, `companies_table[].shipments_12m` (12-month volume only as a per-customer breakdown), `recent_bols[].date_formatted` and `date_range.end_date` in `DD/MM/YYYY`, and a `website` that can be truncated (`"o-i."`) while `other_websites[]` holds the real domain; companies search → `company_link`, `company_total_shipments`, `matching_shipments`, no state or origin countries. Our mission enrichment also let null profile fields overwrite known search fields.
+- **Severity:** High (live scoring silently degraded; demo mode hid it)
+- **Workaround:** Normalizer rewritten against the real payloads (ISO code → country name via `Intl.DisplayNames`, 12-month sum from `companies_table`, DD/MM/YYYY → ISO, website fallback), null-safe merge, and a unit test built from anonymized real responses. Profiles cost 1 credit each, so only the top 3 of a mission are enriched.
+- **Suggestion:** Publish a response schema (field names, date format, units) per endpoint; we could not load docs.importyeti.com from our tooling (HTTP 403) to cross-check. Adding `shipments_12m` and `most_recent_shipment` to search rows would avoid a paid profile call per supplier.

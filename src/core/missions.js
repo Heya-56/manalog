@@ -1,7 +1,7 @@
 // Agentic sourcing missions: one voice request → multi-step autonomous workflow
 // (trade data → enrichment → scoring → landed cost → shortlist → RFQ draft), persisted across sessions.
 import { randomUUID } from 'node:crypto';
-import { rankSuppliers, supplierProfile, dataMode } from './importyeti.js';
+import { rankSuppliers, supplierProfile, mergeSupplier, dataMode } from './importyeti.js';
 import { rankScored } from './scoring.js';
 import { estimateLandedCost } from './landed-cost.js';
 import { bedrockEnabled, generate } from './bedrock.js';
@@ -38,7 +38,7 @@ export async function runMission(ctx, input) {
   }
 
   // Enrich the top candidates (live mode only adds data; demo fixtures are already complete)
-  const enriched = await Promise.all(found.suppliers.map(async (s, i) => (i < 3 && dataMode() === 'live' && s.slug ? { ...s, ...(await supplierProfile(s.slug).catch(() => ({}))) } : s)));
+  const enriched = await Promise.all(found.suppliers.map(async (s, i) => (i < 3 && dataMode() === 'live' && s.slug ? mergeSupplier(s, await supplierProfile(s.slug).catch(() => null)) : s)));
   log('Enriched top candidates with supplier profiles');
 
   const scored = rankScored(enriched, { destination, quantity, priority });

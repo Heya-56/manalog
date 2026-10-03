@@ -5,7 +5,8 @@
 param(
   [string]$IyKey = "",
   [string]$Region = "us-west-2",
-  [string]$Model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+  [string]$Model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  [switch]$DisableBedrock
 )
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -32,7 +33,8 @@ $ErrorActionPreference = "Continue"
 aws bedrock-runtime converse --region $Region --model-id $Model --cli-input-json "file://$env:TEMP\ml-probe.json" 2>&1 | Out-Null
 $probeOk = ($LASTEXITCODE -eq 0)
 $ErrorActionPreference = "Stop"
-if ($probeOk) { Write-Host "Bedrock OK" -ForegroundColor Green; $bedrock = "true" }
+if ($DisableBedrock) { Write-Host "Bedrock disabled on request (-DisableBedrock)" -ForegroundColor Yellow; $bedrock = "false" }
+elseif ($probeOk) { Write-Host "Bedrock OK" -ForegroundColor Green; $bedrock = "true" }
 else { Write-Host "Bedrock not reachable -> enable model access in the Bedrock console (Model access). Deploying with BedrockEnabled=false for now." -ForegroundColor Yellow; $bedrock = "false" }
 
 Write-Host "4/5 SAM build + deploy" -ForegroundColor Cyan

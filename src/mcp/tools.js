@@ -43,7 +43,7 @@ export const tools = [
     async handler(ctx, a) {
       const r = await rankBuyers(a.product, { limit: a.limit });
       if (!r.buyers.length) return { speech: `I found no US importers of ${a.product} yet.`, data: r };
-      const s = r.buyers.map((b) => `${b.name}${b.state ? ` in ${b.state}` : ''}, ${b.shipments12m ?? 'several'} shipments`).join('; ');
+      const s = r.buyers.map((b) => `${b.name}${b.state ? ` in ${b.state}` : ''}, ${b.shipments12m ?? b.matchingShipments ?? 'several'} shipments`).join('; ');
       return { speech: `US buyers of ${r.product}: ${s}. Want me to watch any of them or draft an intro?`, data: r };
     },
   },

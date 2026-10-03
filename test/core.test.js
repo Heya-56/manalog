@@ -149,6 +149,39 @@ test('cost guard: anonymous users never hit live data or Bedrock when plans are 
   }
 });
 
+test('live ImportYeti payloads normalize to country, 12-month volume, last shipment and website', async () => {
+  const { normSupplier, normBuyer, mergeSupplier } = await import('../src/core/importyeti.js');
+  // Anonymized extracts of real responses (2026-09-27): names, addresses and sites replaced, field names and formats kept.
+  const searchRow = {
+    supplier_link: '/supplier/andes-glass-s-a', supplier_name: 'Andes Glass S A', matching_shipments: 2908, specialization: 98.78,
+    supplier_country_code: 'CO', supplier_address: 'Calle 1 Envigado - Colombia', supplier_total_shipments: 2944, supplier_experience: 3.3,
+    product_description: ['Glass Bottles Cod'], customer_companies: ['Example Container Co', 'Example Brewery'], total_customers: 30, weight: 175293579, relevance_score: 99.53,
+  };
+  const profile = {
+    title: 'Andes Glass S A', address_country: 'Colombia', address_country_code: 'CO', website: 'ex.', other_websites: [{ website: 'example.com', frequency: 6 }],
+    phone_number: '0000000000', total_shipments: 2944, date_range: { start_date: '02/01/2015', end_date: '16/09/2026' },
+    companies_table: [{ company_name: 'Example Container Co', shipments_12m: 74 }, { company_name: 'Example Brewery', shipments_12m: 14 }],
+    recent_bols: [{ date_formatted: '16/09/2026' }, { date_formatted: '14/09/2026' }], hs_codes: [{ hs_code: '70', description: 'Glassware' }],
+  };
+  const row = normSupplier(searchRow);
+  assert.equal(row.slug, 'andes-glass-s-a');
+  assert.equal(row.country, 'Colombia');
+  assert.equal(row.totalShipments, 2944);
+  assert.equal(row.shipments12m, null, 'search rows carry no 12-month count');
+  const full = mergeSupplier(row, normSupplier({ slug: row.slug, ...profile }));
+  assert.equal(full.country, 'Colombia');
+  assert.equal(full.shipments12m, 88);
+  assert.equal(full.lastShipment, '2026-09-16');
+  assert.equal(full.website, 'example.com', 'truncated website falls back to other_websites');
+  assert.deepEqual(full.hsCodes, ['70']);
+  const { scoreSupplier } = await import('../src/core/scoring.js');
+  assert.ok(scoreSupplier(full, { destination: 'US', now: Date.parse('2026-09-27') }).score >= 60);
+  // A profile with unknown fields must not erase what the search row knew.
+  assert.equal(mergeSupplier(row, normSupplier({ slug: row.slug, title: 'Andes Glass S A' })).country, 'Colombia');
+  const buyer = normBuyer({ company_link: '/company/example-import', company_name: 'Example Import', matching_shipments: 235, company_total_shipments: 352, company_suppliers: ['Example Export'], total_suppliers: 1 });
+  assert.deepEqual([buyer.slug, buyer.matchingShipments, buyer.totalShipments, buyer.topSuppliers[0]], ['example-import', 235, 352, 'Example Export']);
+});
+
 test('target price fallback: landed cost computed when supplier has no price', async () => {
   _resetStoreForTests();
   const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'tp' });
