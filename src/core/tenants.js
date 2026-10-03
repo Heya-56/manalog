@@ -18,7 +18,7 @@ function loadTenants() {
     try { list.push(...JSON.parse(config.tenantsJson)); } catch (e) { console.error('Invalid MANALOG_TENANTS_JSON', e.message); }
   }
   // Free judges/demo key — required by the hackathon rules (free testing until judging ends).
-  if (!list.some((t) => t.apiKey === config.demoKey)) {
+  if (config.demoKey && !list.some((t) => t.apiKey === config.demoKey)) {
     list.push({ id: 'demo', apiKey: config.demoKey, plan: 'pro', brand: DEFAULT_BRAND });
   }
   return list;

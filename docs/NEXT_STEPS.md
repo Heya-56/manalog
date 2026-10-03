@@ -13,28 +13,15 @@ Rien ne tourne quand personne ne l'utilise : Lambda et DynamoDB (à la demande) 
 Les coûts n'arrivent qu'à l'usage : Bedrock (~1 centime par requête vocale) et crédits ImportYeti (par recherche live).
 Les visiteurs sans clé reçoivent les données démo et le mode sans IA (cost guard) → 0 crédit consommé.
 
-## ⚠️ À faire avant de reprendre / avant la soumission
-1. **Changer la clé jury** : `demo-judges-2026` est écrite dans le repo public, donc n'importe qui peut
-   consommer des crédits ImportYeti/Bedrock avec. Avant de soumettre : choisir une clé secrète,
-   la passer au déploiement (`MANALOG_DEMO_KEY` via un paramètre SAM) et ne la donner que dans les
-   instructions de test Devpost (privées pour le jury). En attendant, on peut redéployer SANS `-IyKey`
-   pour couper les données live.
-2. **Redéployer le dernier commit** (textes sans markdown + prix cible) : `scripts/deploy.ps1 -IyKey <clé>`.
-3. **Corriger la normalisation ImportYeti live** (pays / expéditions / dates vides → scores 15/100) :
-   prompt prêt à coller dans le CLI, voir ci-dessous.
-4. **Budget AWS** : Billing → Budgets → modèle « Zero spend » (alerte e-mail).
-5. **Crédits hackathon** : formulaire 150 $ AWS avant le **21 octobre** (lien dans le règlement).
-6. **Vidéo** (< 3 min, YouTube public) : docs/VIDEO_SCRIPT.md.
-7. **Soumission Devpost** : docs/SUBMISSION.md — date limite **vendredi 23 octobre 2026, 9h00 heure de Tahiti**.
-8. Friction log : compléter les entrées 3 (inscription Alexa+) et 4 (disponibilité Alexa+ hors US).
+## ✅ Fait le 03/10/2026
+- Clé jury secrète : `demo-judges-2026` ne marche plus (401). La nouvelle clé est dans le fichier local `.judges-key`
+  (non versionné), passée au déploiement via le paramètre SAM `JudgesKey`. Console : `<url>/?key=<clé>`.
+- Redéployé avec la normalisation ImportYeti corrigée (données live, Bedrock activé).
+- Budget AWS « My Zero-Spend Budget » (0,01 $/mois) : alerte e-mail à hinovadigital@gmail.com.
 
-## Prompt prêt pour le CLI (étape 3)
-```
-git pull. Puis diagnostique la normalisation des données live ImportYeti : les fournisseurs remontent sans pays,
-sans nombre d'expéditions ni date de dernière expédition (score 15/100 partout).
-1. Avec ma clé ImportYeti, appelle GET https://data.importyeti.com/v1.0/product/glass%20bottle/suppliers?page_size=3
-   et GET /v1.0/supplier/<slug du premier résultat> (en-tête IYApiKey), et montre-moi les noms de champs réels (sans la clé).
-2. Adapte normSupplier et rankBuyers dans src/core/importyeti.js à ces vrais champs, sans casser le mode demo.
-3. Ajoute un test avec un extrait anonymisé de la vraie réponse, npm test, redéploie avec scripts/deploy.ps1 -IyKey <ma clé>, commit et push.
-4. Ajoute une entrée au FRICTION_LOG si la doc ImportYeti ne décrivait pas ces champs.
-```
+## ⚠️ Reste à faire avant la soumission
+1. **Crédits hackathon** : formulaire 150 $ AWS avant le **21 octobre** (lien dans le règlement).
+2. **Vidéo** (< 3 min, YouTube public) : docs/VIDEO_SCRIPT.md.
+3. **Soumission Devpost** : docs/SUBMISSION.md — remplacer `<JUDGES_KEY>` par la clé de `.judges-key`
+   uniquement dans le champ privé Devpost. Date limite **vendredi 23 octobre 2026, 9h00 heure de Tahiti**.
+4. Friction log : compléter les entrées 3 (inscription Alexa+) et 4 (disponibilité Alexa+ hors US).

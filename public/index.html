@@ -103,7 +103,7 @@
     </form>
     <details class="settings">
       <summary>Settings</summary>
-      <label>API key <input id="key" value="demo-judges-2026"></label>
+      <label>API key <input id="key" value="" placeholder="Judges' key (Devpost testing instructions)"></label>
       <label>User id (memory across sessions) <input id="user" value="heya"></label>
       <label>Voice language
         <select id="lang"><option value="en-US">English (US)</option><option value="fr-FR">Français</option></select>
@@ -132,6 +132,8 @@ function renderChips() { const l = $('lang').value; $('chips').innerHTML = CHIPS
 $('chips').addEventListener('click', (e) => { if (e.target.classList.contains('chip')) ask(e.target.textContent); });
 $('lang').addEventListener('change', renderChips);
 renderChips();
+// Judges open the console with ?key=<their key>; it is never stored in the page source.
+{ const k = new URLSearchParams(location.search).get('key'); if (k) $('key').value = k; }
 
 function setState(s, label) { $('ring').className = 'ring ' + s; $('state').textContent = label; }
 function bubble(role, text) { const d = document.createElement('div'); d.className = 'b ' + (role === 'user' ? 'u' : 'a'); d.textContent = text; $('log').appendChild(d); $('log').scrollTop = 1e9; }

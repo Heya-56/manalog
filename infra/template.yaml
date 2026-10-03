@@ -16,6 +16,11 @@ Parameters:
     NoEcho: true
     Default: ''
     Description: Leave empty to run on bundled demo data
+  JudgesKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Secret Pro key for hackathon judges (given only in the private Devpost testing instructions)
   EnforcePlans:
     Type: String
     AllowedValues: ['true', 'false']
@@ -63,6 +68,7 @@ Resources:
           BEDROCK_ENABLED: !Ref BedrockEnabled
           BEDROCK_MODEL_ID: !Ref BedrockModelId
           IY_API_KEY: !Ref ImportYetiApiKey
+          MANALOG_DEMO_KEY: !Ref JudgesKey
           MANALOG_ENFORCE_PLANS: !Ref EnforcePlans
           MANALOG_TENANTS_JSON: !Ref TenantsJson
           MANALOG_UPGRADE_URL: !Ref UpgradeUrl

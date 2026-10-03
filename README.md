@@ -69,7 +69,7 @@ Open http://localhost:8787, click a suggestion chip or the mic (Chrome/Edge), an
 4. *Who buys vanilla in the US?*
 5. *Trouve-moi 1500 flacons pour mon monoï* (French works too)
 
-**Judges' API key:** `demo-judges-2026` (Pro plan, free until judging ends).
+**Judges' API key:** given privately in the Devpost testing instructions (Pro plan, free until judging ends). Without a key the hosted console runs on the free Community plan with demo data.
 
 ## Deploy to AWS (≈5 minutes)
 
@@ -90,7 +90,7 @@ Environment variables are documented in `src/core/config.js`.
 ## Connect an MCP client
 
 ```json
-{ "mcpServers": { "manalog": { "type": "http", "url": "https://<your-function-url>/mcp", "headers": { "x-api-key": "demo-judges-2026", "x-manalog-user": "me" } } } }
+{ "mcpServers": { "manalog": { "type": "http", "url": "https://<your-function-url>/mcp", "headers": { "x-api-key": "<your-api-key>", "x-manalog-user": "me" } } } }
 ```
 
 Or inspect it: `npx @modelcontextprotocol/inspector` → Transport *Streamable HTTP* → URL above.

@@ -6,6 +6,7 @@ param(
   [string]$IyKey = "",
   [string]$Region = "us-west-2",
   [string]$Model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  [string]$JudgesKey = "",
   [switch]$DisableBedrock
 )
 $ErrorActionPreference = "Stop"
@@ -37,11 +38,19 @@ if ($DisableBedrock) { Write-Host "Bedrock disabled on request (-DisableBedrock)
 elseif ($probeOk) { Write-Host "Bedrock OK" -ForegroundColor Green; $bedrock = "true" }
 else { Write-Host "Bedrock not reachable -> enable model access in the Bedrock console (Model access). Deploying with BedrockEnabled=false for now." -ForegroundColor Yellow; $bedrock = "false" }
 
+# Judges' key: secret, never committed. Kept in .judges-key (gitignored) so redeploys reuse it.
+$keyFile = Join-Path (Get-Location) ".judges-key"
+if (-not $JudgesKey) {
+  if (Test-Path $keyFile) { $JudgesKey = (Get-Content $keyFile -Raw).Trim() }
+  else { $JudgesKey = "judges-" + [guid]::NewGuid().ToString("N").Substring(0, 16) }
+}
+Set-Content -Path $keyFile -Value $JudgesKey -NoNewline -Encoding ascii
+
 Write-Host "4/5 SAM build + deploy" -ForegroundColor Cyan
 Set-Location infra
 sam build -t template.yaml
 if ($LASTEXITCODE -ne 0) { throw 'sam build failed' }
-$params = @("BedrockEnabled=$bedrock", "BedrockModelId=$Model", "EnforcePlans=true")
+$params = @("BedrockEnabled=$bedrock", "BedrockModelId=$Model", "EnforcePlans=true", "JudgesKey=$JudgesKey")
 if ($IyKey) { $params += "ImportYetiApiKey=$IyKey" }
 sam deploy --no-confirm-changeset --region $Region --parameter-overrides $params
 if ($LASTEXITCODE -ne 0) { throw 'sam deploy failed' }
@@ -50,5 +59,5 @@ Write-Host "5/5 Smoke test" -ForegroundColor Cyan
 $url = aws cloudformation describe-stacks --stack-name manalog --region $Region --query "Stacks[0].Outputs[?OutputKey=='ConsoleUrl'].OutputValue" --output text
 Set-Location ..
 Invoke-RestMethod "$($url)health" | ConvertTo-Json
-node test/e2e-mcp-client.mjs "$($url)mcp" demo-judges-2026
-Write-Host "`nConsole : $url`nMCP     : $($url)mcp`nJudges key: demo-judges-2026" -ForegroundColor Green
+node test/e2e-mcp-client.mjs "$($url)mcp" $JudgesKey
+Write-Host "`nConsole : $url`nMCP     : $($url)mcp`nJudges key: $JudgesKey (secret: share it only in the Devpost testing instructions)" -ForegroundColor Green
