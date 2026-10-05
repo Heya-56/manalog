@@ -2,12 +2,14 @@
 # Prereqs (checked below): Node 20+, AWS CLI v2 logged in (`aws configure`), AWS SAM CLI.
 # Usage:  .\scripts\deploy.ps1                 (demo data)
 #         .\scripts\deploy.ps1 -IyKey "xxxx"   (live ImportYeti data)
+#         .\scripts\deploy.ps1 -Pause         (no spending: demo data + no Bedrock, even if a key was deployed before)
 param(
   [string]$IyKey = "",
   [string]$Region = "us-west-2",
   [string]$Model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
   [string]$JudgesKey = "",
-  [switch]$DisableBedrock
+  [switch]$DisableBedrock,
+  [switch]$Pause
 )
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -34,6 +36,7 @@ $ErrorActionPreference = "Continue"
 aws bedrock-runtime converse --region $Region --model-id $Model --cli-input-json "file://$env:TEMP\ml-probe.json" 2>&1 | Out-Null
 $probeOk = ($LASTEXITCODE -eq 0)
 $ErrorActionPreference = "Stop"
+if ($Pause) { $DisableBedrock = $true; Write-Host "PAUSE mode: demo data, no Bedrock - no ImportYeti credits or AI costs" -ForegroundColor Yellow }
 if ($DisableBedrock) { Write-Host "Bedrock disabled on request (-DisableBedrock)" -ForegroundColor Yellow; $bedrock = "false" }
 elseif ($probeOk) { Write-Host "Bedrock OK" -ForegroundColor Green; $bedrock = "true" }
 else { Write-Host "Bedrock not reachable -> enable model access in the Bedrock console (Model access). Deploying with BedrockEnabled=false for now." -ForegroundColor Yellow; $bedrock = "false" }
@@ -50,7 +53,8 @@ Write-Host "4/5 SAM build + deploy" -ForegroundColor Cyan
 Set-Location infra
 sam build -t template.yaml
 if ($LASTEXITCODE -ne 0) { throw 'sam build failed' }
-$params = @("BedrockEnabled=$bedrock", "BedrockModelId=$Model", "EnforcePlans=true", "JudgesKey=$JudgesKey")
+$dataMode = if ($Pause) { "demo" } else { "auto" }
+$params = @("DataMode=$dataMode", "BedrockEnabled=$bedrock", "BedrockModelId=$Model", "EnforcePlans=true", "JudgesKey=$JudgesKey")
 if ($IyKey) { $params += "ImportYetiApiKey=$IyKey" }
 sam deploy --no-confirm-changeset --region $Region --parameter-overrides $params
 if ($LASTEXITCODE -ne 0) { throw 'sam deploy failed' }

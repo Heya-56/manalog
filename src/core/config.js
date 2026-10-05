@@ -6,7 +6,8 @@ const env = (k, d) => (process.env[k] ?? d);
 export const config = {
   appName: env('MANALOG_APP_NAME', 'ManaLog'),
   // Data source: "live" uses the ImportYeti API (needs IY_API_KEY); "demo" uses bundled fictional fixtures.
-  dataMode: env('MANALOG_DATA_MODE', process.env.IY_API_KEY ? 'live' : 'demo'),
+  // MANALOG_DATA_MODE=demo forces demo data even if a key is still deployed ("pause"); "auto"/unset = live when a key exists.
+  dataMode: ['demo', 'live'].includes(process.env.MANALOG_DATA_MODE) ? process.env.MANALOG_DATA_MODE : (process.env.IY_API_KEY ? 'live' : 'demo'),
   importYeti: {
     baseUrl: env('IY_BASE_URL', 'https://data.importyeti.com/v1.0'),
     apiKey: env('IY_API_KEY', ''),

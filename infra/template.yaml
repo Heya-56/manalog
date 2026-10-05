@@ -11,6 +11,11 @@ Parameters:
     Type: String
     AllowedValues: ['true', 'false']
     Default: 'true'
+  DataMode:
+    Type: String
+    AllowedValues: ['auto', 'demo', 'live']
+    Default: 'auto'
+    Description: demo forces bundled demo data (pause mode, no ImportYeti credits) even if a key is deployed
   ImportYetiApiKey:
     Type: String
     NoEcho: true
@@ -68,6 +73,7 @@ Resources:
           BEDROCK_ENABLED: !Ref BedrockEnabled
           BEDROCK_MODEL_ID: !Ref BedrockModelId
           IY_API_KEY: !Ref ImportYetiApiKey
+          MANALOG_DATA_MODE: !Ref DataMode
           MANALOG_DEMO_KEY: !Ref JudgesKey
           MANALOG_ENFORCE_PLANS: !Ref EnforcePlans
           MANALOG_TENANTS_JSON: !Ref TenantsJson
