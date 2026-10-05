@@ -18,7 +18,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
-  .logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--brand), var(--brand-2)); display: grid; place-items: center; color: #fff; font-weight: 800; }
+  .logo { flex: none; width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--brand), var(--brand-2)); display: grid; place-items: center; color: #fff; font-weight: 800; }
   header h1 { font-size: 16px; margin: 0; }
   header .tag { color: var(--muted); font-size: 12px; }
   header .spacer { flex: 1; }
@@ -78,6 +78,30 @@
   .trace .t { border-left: 3px solid var(--brand-2); padding: 4px 10px; background: var(--chip); border-radius: 0 8px 8px 0; overflow-wrap: anywhere; }
   .trace .t b { color: var(--brand); }
   .steps { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+  .tabs { display: flex; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+  .tab { flex: 1; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; padding: 8px 10px; border-radius: 9px; cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--chip); color: var(--brand); }
+  [hidden] { display: none !important; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+  .kpi .v { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .kpi .v small { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .kpi .l { font-size: 12px; color: var(--muted); }
+  .meter { height: 8px; border-radius: 99px; background: var(--chip); overflow: hidden; margin-top: 6px; }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart text { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .chart .val { fill: var(--ink); font-weight: 700; }
+  .mt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .mt th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; padding: 0 8px 6px 0; }
+  .mt td { padding: 9px 8px 9px 0; border-top: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  .mt td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mt tr.click { cursor: pointer; }
+  .mt tr.click:hover td { background: var(--chip); }
+  .pill.ok { background: color-mix(in srgb, #2E9E5B 18%, transparent); color: #2E9E5B; }
+  .pill.no { background: color-mix(in srgb, var(--coral) 18%, transparent); color: var(--coral); }
+  @media (max-width: 560px) { .mt .hide-s { display: none; } .mt { font-size: 12.5px; } .mt td.n { white-space: normal; } }
   footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px 16px 24px; }
 </style>
 </head>
@@ -113,8 +137,21 @@
   </section>
 
   <div class="col">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tabLive" aria-selected="true">Live</button>
+      <button class="tab" role="tab" id="tabDash" aria-selected="false">Dashboard</button>
+    </div>
+    <div class="col" id="viewDash" hidden>
+      <div class="kpis" id="kpis"></div>
+      <section class="panel"><h2>What shipping & taxes add — landed cost ÷ purchase price</h2><div class="chart" id="chart"><p class="empty">No missions yet.</p></div></section>
+      <section class="panel"><h2>Mission history</h2><div id="history"><p class="empty">Your sourcing missions are saved here, across sessions and devices.</p></div></section>
+      <section class="panel"><h2>Watched suppliers</h2><div id="watch"><p class="empty">Say “watch this supplier” to follow its shipments.</p></div></section>
+      <p class="note">Opening the dashboard reads your saved data only — it uses no ImportYeti credits and no AI calls. Landed costs are indicative estimates.</p>
+    </div>
+    <div class="col" id="viewLive">
     <section class="panel"><h2>Card</h2><div id="card"><p class="empty">Results appear here — the same cards an Alexa+ screen device would show.</p></div></section>
     <section class="panel"><h2>Agent trace — MCP tool calls</h2><div class="trace" id="trace"><p class="empty">Each tool the agent calls on the ManaLog MCP server is logged here.</p></div></section>
+    </div>
   </div>
 </main>
 <footer>ManaLog is open source (AGPL-3.0) — <a href="https://github.com/Heya-56/manalog">source code</a> · Alexa+ experience simulated in the browser; the same tools are served to Alexa+ via the MCP endpoint <code>/mcp</code>.</footer>
@@ -124,6 +161,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }));
 const history = [];
+const compact = (n) => Number(n).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 const CHIPS = {
   'en-US': ['Find me 2000 glass bottles for my monoi', 'Compare the suppliers', 'Send it', 'Who buys vanilla in the US?', "What's new with my suppliers?", 'My plan'],
   'fr-FR': ['Trouve-moi 2000 flacons pour mon monoï', 'Compare les fournisseurs', 'Envoie-la', 'Qui achète de la vanille aux États-Unis ?', 'Mon abonnement'],
@@ -157,6 +195,7 @@ async function ask(text) {
     const last = [...(j.calls || [])].reverse().find((c) => c.data);
     if (last) renderCard(last);
     speak(j.reply);
+    if (!$('viewDash').hidden) loadDashboard();
   } catch (e) { bubble('assistant', 'Error: ' + e.message); setState('', 'Tap the mic or type'); }
 }
 
@@ -230,6 +269,67 @@ $('mic').addEventListener('click', () => {
   rec.start();
 });
 $('f').addEventListener('submit', (e) => { e.preventDefault(); ask($('q').value); });
+
+// ---------- Dashboard (read-only: no paid calls) ----------
+let dash = null;
+function showTab(t) {
+  const d = t === 'dash';
+  $('viewDash').hidden = !d; $('viewLive').hidden = d;
+  $('tabDash').setAttribute('aria-selected', d); $('tabLive').setAttribute('aria-selected', !d);
+  if (d) loadDashboard();
+}
+$('tabLive').addEventListener('click', () => showTab('live'));
+$('tabDash').addEventListener('click', () => showTab('dash'));
+
+async function loadDashboard() {
+  try {
+    const r = await fetch(base() + '/dashboard', { headers: { 'x-api-key': $('key').value, 'x-manalog-user': $('user').value } });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText);
+    dash = j; renderDashboard(j);
+  } catch (e) { $('kpis').innerHTML = `<p class="empty">Dashboard unavailable: ${esc(e.message)}</p>`; }
+}
+
+function renderDashboard(d) {
+  const k = d.kpis, u = d.usage, pct = u.limit ? Math.min(100, Math.round((u.calls / u.limit) * 100)) : 0;
+  $('kpis').innerHTML = [
+    [k.missions, 'sourcing missions'],
+    [k.totalLandedXpf == null ? '–' : compact(k.totalLandedXpf) + ' <small>XPF</small>', 'est. landed value of best offers'],
+        [k.avgMultiplier == null ? '–' : '×' + fmt(k.avgMultiplier), 'avg. landed multiplier'],
+    [`${k.rfqsApproved} <small>/ ${k.missions}</small>`, 'quote requests approved'],
+  ].map(([v, l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div></div>`).join('') +
+    `<div class="kpi" style="grid-column:1/-1"><div class="l">${esc(u.planLabel)} plan · ${esc(u.calls)} of ${esc(u.limit)} calls used in ${esc(String(u.month).replace(/^(\d{4})(\d{2})$/, '$1-$2'))} · ${esc(k.watched)} supplier${k.watched === 1 ? '' : 's'} watched</div><div class="meter"><i style="width:${pct}%"></i></div></div>`;
+  renderChart(d.missions);
+  $('history').innerHTML = d.missions.length ? `<table class="mt"><thead><tr><th class="hide-s">Date</th><th>Product</th><th class="hide-s">Best supplier</th><th>Score</th><th class="n">Landed / unit</th><th>Quote</th></tr></thead><tbody>` +
+    d.missions.map((m, i) => `<tr class="click" data-i="${i}" title="Open this mission's card"><td class="hide-s">${esc(new Date(m.createdAt).toLocaleDateString())}</td><td>${esc(fmt(m.quantity))} × ${esc(m.product)} → ${esc(m.destination)}</td><td class="hide-s">${esc(m.topSupplier ?? '–')}</td><td>${esc(m.topScore ?? '–')}</td><td class="n">${m.bestUnit ? `${fmt(m.bestUnit.unit)} ${esc(m.bestUnit.currency)}` : '–'}</td><td><span class="pill ${m.rfqStatus === 'approved' ? 'ok' : m.rfqStatus === 'rejected' ? 'no' : ''}">${esc(m.rfqStatus ?? '–')}</span></td></tr>`).join('') + '</tbody></table>'
+    : '<p class="empty">No missions yet. Try: “Find me 2000 glass bottles for my monoi”.</p>';
+  $('watch').innerHTML = d.watchlist.length ? d.watchlist.map((w) => `<div class="srow"><div class="score">👁</div><div><div class="sname">${esc(w.name)}</div><div class="smeta">${esc(w.country ?? '')}${w.note ? ' · ' + esc(w.note) : ''}</div></div><div class="sprice"><span class="smeta">since ${esc(new Date(w.addedAt).toLocaleDateString())}</span></div></div>`).join('')
+    : '<p class="empty">Say “watch this supplier” to follow its shipments.</p>';
+}
+
+function renderChart(ms) {
+  const pts = ms.filter((m) => m.bestUnit?.multiplier).slice(0, 8).reverse();
+  if (!pts.length) { $('chart').innerHTML = '<p class="empty">No landed costs yet — run a mission, or give a target price (“at about 40 cents each”).</p>'; return; }
+  const W = Math.max(300, Math.min(720, $('chart').clientWidth || 560)), H = 210, padB = 34, padT = 22, bw = Math.min(56, (W - 20) / pts.length - 14);
+  const max = Math.max(...pts.map((p) => p.bestUnit.multiplier)) * 1.12 || 1;
+  const step = (W - 20) / pts.length;
+  const bars = pts.map((p, i) => {
+    const h = ((H - padB - padT) * p.bestUnit.multiplier) / max, x = 10 + i * step + (step - bw) / 2, y = H - padB - h;
+    const max_ = Math.max(6, Math.floor(step / 7.5)); const label = p.product.length > max_ ? p.product.slice(0, max_ - 1) + '…' : p.product;
+    return `<g><title>${esc(p.product)} · ${esc(p.bestUnit.supplier)} · ${fmt(p.bestUnit.unit)} ${esc(p.bestUnit.currency)} per unit landed (×${fmt(p.bestUnit.multiplier)} the purchase price)</title>
+      <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="6" fill="url(#g)"/>
+      <text class="val" x="${x + bw / 2}" y="${y - 6}" text-anchor="middle">×${fmt(p.bestUnit.multiplier)}</text>
+      <text x="${x + bw / 2}" y="${H - padB + 16}" text-anchor="middle">${esc(label)}</text>
+      <text x="${x + bw / 2}" y="${H - padB + 29}" text-anchor="middle">${esc(new Date(p.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</text></g>`;
+  }).join('');
+  $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Best landed unit cost per mission"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--brand-2)"/><stop offset="1" stop-color="var(--brand)"/></linearGradient></defs>
+    <line x1="0" x2="${W}" y1="${H - padB}" y2="${H - padB}" stroke="var(--line)"/>${bars}</svg><p class="note">×2 means the product costs twice its purchase price once delivered (freight, insurance, duties, VAT, broker). Indicative rates.</p>`;
+}
+
+window.addEventListener('resize', () => { if (dash && !$('viewDash').hidden) renderChart(dash.missions); });
+$('history').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr[data-i]'); if (!tr || !dash) return;
+  renderCard({ data: dash.missions[Number(tr.dataset.i)].detail }); showTab('live');
+});
 health();
 </script>
 </body>

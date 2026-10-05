@@ -107,6 +107,8 @@ test('offline voice router handles the demo script (EN + FR)', async () => {
   const r3 = await runAgent(ctx, { text: 'Trouve-moi 1 500 flacons pour mon monoï' });
   assert.equal(r3.calls[0].args.quantity, 1500);
   assert.equal(r3.calls[0].args.language, 'fr');
+  const r5 = await runAgent(ctx, { text: 'Find me 600 coconut oil' });
+  assert.equal(r5.calls[0].args.quantity, 600, '3-digit quantities are not glued to the previous word');
   const r4 = await runAgent(ctx, { text: 'Who buys vanilla in the US?' });
   assert.equal(r4.calls[0].name, 'find_buyers');
 });
@@ -189,4 +191,22 @@ test('target price fallback: landed cost computed when supplier has no price', a
   assert.equal(r.calls[0].args.quantity, 2000);
   assert.equal(r.calls[0].args.targetUnitPriceUsd, 0.4);
   assert.ok(r.calls[0].data.shortlist.every((s) => s.localUnit), 'every shortlisted supplier has a landed cost');
+});
+
+test('dashboard: read-only summary of missions, KPIs and usage (no paid calls)', async () => {
+  _resetStoreForTests();
+  const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'dash' });
+  await runAgent(ctx, { text: 'Find me 2000 glass bottles for my monoi at about 40 cents each' });
+  await runAgent(ctx, { text: 'Send it' });
+  const res = await handler({ rawPath: '/dashboard', rawQueryString: '', requestContext: { http: { method: 'GET' } }, headers: { host: 'x', 'x-api-key': 'demo-judges-2026', 'x-manalog-user': 'dash' }, isBase64Encoded: false });
+  assert.equal(res.statusCode, 200);
+  const d = JSON.parse(res.body);
+  assert.equal(d.kpis.missions, 1);
+  assert.equal(d.kpis.rfqsApproved, 1);
+  assert.ok(d.kpis.totalLandedXpf > 0);
+  assert.ok(d.kpis.avgMultiplier > 1, 'landing costs more than the purchase price');
+  assert.equal(d.missions[0].bestUnit.currency, 'XPF');
+  assert.ok(d.missions[0].detail.shortlist.length, 'full mission included to reopen its card');
+  const other = await handler({ rawPath: '/dashboard', rawQueryString: '', requestContext: { http: { method: 'GET' } }, headers: { host: 'x', 'x-api-key': 'demo-judges-2026', 'x-manalog-user': 'someone-else' }, isBase64Encoded: false });
+  assert.equal(JSON.parse(other.body).kpis.missions, 0, 'users are isolated');
 });

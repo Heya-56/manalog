@@ -48,7 +48,7 @@ export async function runAgent(ctx, { text, history = [] }) {
 const trim = (d) => JSON.parse(JSON.stringify(d ?? {}, (k, v) => (k === 'steps' || k === 'textSample' ? undefined : v)));
 
 // ---------- offline intent router (no LLM) ----------
-const numberIn = (t) => { const m = t.replace(/[,\s](?=\d{3}\b)/g, '').match(/\b(\d{2,7})\b/); return m ? Number(m[1]) : undefined; };
+const numberIn = (t) => { const m = t.replace(/(?<=\d)[,\s](?=\d{3}\b)/g, '').match(/\b(\d{2,7})\b/); return m ? Number(m[1]) : undefined; };
 const PRODUCTS = ['glass bottle', 'bottle', 'flacon', 'vanilla', 'vanille', 'coconut oil', 'huile de coco', 'kraft', 'paper bag', 'sac kraft', 'mother of pearl', 'nacre', 'monoi', 'monoï', 'black pearl', 'perle noire'];
 const productIn = (t) => PRODUCTS.find((p) => t.includes(p));
 

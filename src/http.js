@@ -1,5 +1,6 @@
 // Web-standard router shared by AWS Lambda (Function URL) and the local Node server.
 //   /mcp     → MCP Streamable HTTP endpoint (spec 2025-11-25, stateless, JSON responses)
+//   /dashboard → read-only summary of the user's missions, usage and watchlist (no paid calls)
 //   /agent   → voice agent (Bedrock tool-use loop) for the Alexa+ simulation console
 //   /        → the voice console (public/index.html)
 import { readFileSync } from 'node:fs';
@@ -7,6 +8,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { buildServer } from './mcp/server.js';
 import { resolveContext } from './core/tenants.js';
 import { runAgent } from './agent/agent.js';
+import { dashboardSummary } from './core/dashboard.js';
 import { bedrockEnabled } from './core/bedrock.js';
 import { config } from './core/config.js';
 
@@ -54,6 +56,10 @@ export async function handle(req) {
       await transport.close().catch(() => {});
       await server.close().catch(() => {});
     }
+  }
+
+  if (url.pathname === '/dashboard' && req.method === 'GET') {
+    try { return json(await dashboardSummary(ctx)); } catch (e) { console.error(e); return json({ error: e.message }, 500); }
   }
 
   if (url.pathname === '/agent' && req.method === 'POST') {
