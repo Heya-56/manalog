@@ -113,6 +113,25 @@ test('offline voice router handles the demo script (EN + FR)', async () => {
   assert.equal(r4.calls[0].name, 'find_buyers');
 });
 
+test('offline router: French small talk, no word-for-word repetition', async () => {
+  _resetStoreForTests();
+  const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'chat' });
+  const history = [];
+  const replies = [];
+  for (const text of ['blabla', 'blabla', 'blabla']) {
+    const { reply } = await runAgent(ctx, { text, history });
+    history.push({ role: 'user', text }, { role: 'assistant', text: reply });
+    replies.push(reply);
+  }
+  assert.notEqual(replies[0], replies[1]);
+  assert.notEqual(replies[1], replies[2]);
+  const hi = await runAgent(ctx, { text: 'Bonjour' });
+  assert.match(hi.reply, /Bonjour|Ia ora na/);
+  assert.equal(hi.calls.length, 0);
+  const who = await runAgent(ctx, { text: 'qui es-tu ?' });
+  assert.match(who.reply, /fournisseurs|Essayez/, 'French question gets a French answer');
+});
+
 test('Lambda handler speaks MCP 2025-11-25 (initialize + tools/list)', async () => {
   const post = (body) => handler({
     rawPath: '/mcp', rawQueryString: '', requestContext: { http: { method: 'POST' } },

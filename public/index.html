@@ -190,6 +190,8 @@ async function ask(text) {
     if (!r.ok) throw new Error(j.error || r.statusText);
     history.push({ role: 'user', text }, { role: 'assistant', text: j.reply });
     if (j.brand) applyBrand(j.brand);
+    // Show the engine that actually answered: without a key the server falls back to the offline router.
+    if (j.engine) { const on = j.engine === 'bedrock'; $('engine').textContent = 'engine: ' + (on ? 'Bedrock' : 'offline router' + ($('key').value ? '' : ' (no key)')); $('engine').classList.toggle('on', on); }
     bubble('assistant', j.reply);
     (j.calls || []).forEach(trace);
     const last = [...(j.calls || [])].reverse().find((c) => c.data);
