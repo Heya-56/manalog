@@ -50,6 +50,7 @@
   input[type=text] { flex: 1; min-width: 0; background: #0f2327; border: 1px solid #25464c; color: var(--device-ink); border-radius: 12px; padding: 11px 12px; font: inherit; }
   .mic { width: 46px; height: 46px; flex: none; border-radius: 50%; border: 0; background: var(--brand); color: #fff; cursor: pointer; display: grid; place-items: center; }
   .mic.rec { background: var(--coral); }
+  .mic.cam { background: #2a4d53; }
   .mic svg { width: 20px; height: 20px; }
   .settings { margin-top: 10px; font-size: 12px; color: #8fb3b8; }
   .settings summary { cursor: pointer; }
@@ -128,7 +129,12 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>
       </button>
       <input type="text" id="q" placeholder="Find me 2000 glass bottles for my monoi…" data-i18n-ph="qPh" autocomplete="off">
+      <button type="button" class="mic cam" id="cam" aria-label="Photo of an invoice or bill of lading" data-i18n-aria="photo" title="Photo of an invoice or bill of lading">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+      </button>
+      <input type="file" id="file" accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" hidden>
     </form>
+    <button type="button" class="chip" id="sampleDoc" style="margin-top:8px" data-i18n="sample">Try the sample invoice</button>
     <details class="settings">
       <summary data-i18n="settings">Settings</summary>
       <label><span data-i18n="apiKey">API key</span> <input id="key" value="" placeholder="Judges' key (Devpost testing instructions)" data-i18n-ph="keyPh"></label>
@@ -167,7 +173,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const T = {
   en: {
     tagline: 'Voice sourcing for island makers', idle: 'Tap the mic or type', thinking: 'Thinking…', listening: 'Listening…', speaking: 'Speaking',
-    noVoice: 'Voice input not supported here — type instead', speak: 'Speak', qPh: 'Find me 2000 glass bottles for my monoi…',
+    noVoice: 'Voice input not supported here — type instead', speak: 'Speak', photo: 'Photo of an invoice or bill of lading', reading: 'Reading the document…', sentPhoto: '📷 Document sent', sample: 'Try the sample invoice', qPh: 'Find me 2000 glass bottles for my monoi…',
     settings: 'Settings', apiKey: 'API key', keyPh: "Judges' key (Devpost testing instructions)", userId: 'User id (memory across sessions)',
     voiceLang: 'Voice language', server: 'Server', serverPh: 'same origin', tabLive: 'Live', tabDash: 'Dashboard',
     chartH: 'What shipping & taxes add — landed cost ÷ purchase price', noMissions: 'No missions yet.', historyH: 'Mission history',
@@ -198,6 +204,7 @@ const T = {
     chartNote: '×2 means the product costs twice its purchase price once delivered (freight, insurance, duties, VAT, broker). Indicative rates.',
   },
   fr: {
+    photo: 'Photo d’une facture ou d’un connaissement', reading: 'Lecture du document…', sentPhoto: '📷 Document envoyé', sample: 'Essayer la facture exemple',
     tagline: 'Le sourcing à la voix pour les artisans des îles', idle: 'Touchez le micro ou écrivez', thinking: 'Je réfléchis…', listening: 'J’écoute…', speaking: 'Je parle',
     noVoice: 'Saisie vocale non disponible ici — écrivez plutôt', speak: 'Parler', qPh: 'Trouve-moi 2000 flacons pour mon monoï…',
     settings: 'Réglages', apiKey: 'Clé API', keyPh: 'Clé jury (instructions de test Devpost)', userId: 'Identifiant (mémoire entre les sessions)',
@@ -338,6 +345,7 @@ function renderCard(c) {
     const row = (x, cls) => `<div class="srow"><div class="score" style="background:${cls === 'error' ? 'var(--coral)' : '#C8961E'}">${cls === 'error' ? '!' : '?'}</div><div><div class="sname">${esc(x.message)}</div><div class="smeta">${esc(x.field)}${x.expected != null ? ` · expected ${esc(x.expected)} · found ${esc(x.actual)}` : ''}</div></div><div></div></div>`;
     el.innerHTML = `<div class="card-title">Customs check — ${esc(data.countryName)} ${data.ok ? '<span class="pill ok">all good</span>' : `<span class="pill no">${data.errors.length} problem${data.errors.length === 1 ? '' : 's'}</span>`}</div>
       <div class="card-sub">Invoice ${esc(data.invoiceNumber)}${data.demo ? ' · demo file: ' + esc(data.demo) : ''}</div>
+      ${data.extraction ? `<p class="smeta">Read by ${data.extraction.engine === 'bedrock' ? 'Amazon Bedrock (strict JSON Schema' + (data.extraction.attempts > 1 ? ', 1 repair round' : '') + ')' : 'the demo transcription'} · image quality: ${esc(data.extraction.imageQuality ?? '–')}${(data.extraction.lowConfidenceFields || []).length ? ' · check: ' + esc(data.extraction.lowConfidenceFields.join(', ')) : ''}${(data.extraction.unreadable || []).length ? ' · unreadable: ' + esc(data.extraction.unreadable.join('; ')) : ''}</p>${data.extraction.note ? `<p class="note">${esc(data.extraction.note)}</p>` : ''}` : ''}
       ${data.errors.map((x) => row(x, 'error')).join('')}${data.warnings.map((x) => row(x, 'warning')).join('')}
       ${c ? `<table style="margin-top:12px"><tr><td>Value for duty (CIF)</td><td>${fmt(c.valueForDuty)} ${esc(c.currency)}</td></tr>
         ${c.lines.map((l) => `<tr><td>${esc(l.name)} (${fmt(l.rate * 100)}%${l.rateSource === 'official' ? ', official' : l.rateSource === 'illustrative-default' ? ', illustrative' : ''})</td><td>${fmt(l.amount)} ${esc(c.currency)}</td></tr>`).join('')}
@@ -453,6 +461,31 @@ $('history').addEventListener('click', (e) => {
   const tr = e.target.closest('tr[data-i]'); if (!tr || !dash) return;
   renderCard({ data: dash.missions[Number(tr.dataset.i)].detail }); showTab('live');
 });
+
+// ---------- Trade document photo → Bedrock transcription → customs check ----------
+async function shrink(file) {
+  if (file.type === 'application/pdf') return { mediaType: file.type, b64: await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = ko; r.readAsDataURL(file); }) };
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, 1800 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return { mediaType: 'image/jpeg', b64: c.toDataURL('image/jpeg', 0.85).split(',')[1] };
+}
+async function sendDocument(file) {
+  bubble('user', file ? t('sentPhoto') + ' · ' + file.name : t('sample')); setState('thinking', t('reading'));
+  try {
+    const body = file ? await shrink(file).then(({ mediaType, b64 }) => ({ mediaType, fileBase64: b64 })) : {};
+    const r = await fetch(base() + '/document', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': $('key').value, 'x-manalog-user': $('user').value }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok && !j.reply) throw new Error(j.error || r.statusText);
+    bubble('assistant', j.reply); (j.calls || []).forEach(trace);
+    if (j.calls?.[0]?.data) { showTab('live'); renderCard(j.calls[0]); }
+    speak(j.reply);
+  } catch (e) { bubble('assistant', t('error') + ': ' + e.message); setState('', t('idle')); }
+}
+$('cam').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) sendDocument(f); });
+$('sampleDoc').addEventListener('click', () => sendDocument(null));
 setLang(LANG);
 </script>
 </body>

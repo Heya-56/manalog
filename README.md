@@ -22,6 +22,7 @@ It was built for the artisans of French Polynesia 🇵🇫: people who make worl
 | "Send it" | `approve_rfq`: **human-in-the-loop**. Returns a one-tap email; ManaLog never contacts a supplier without approval |
 | "Who buys vanilla in the US?" | `find_buyers`: **export** prospecting from US import records |
 | "Check my invoice for Suva" | `check_customs_documents`: invoice arithmetic, HS codes, importer TIN, invoice vs bill of lading, and duty + VAT recomputed with the official Fiji (FRCS) formula; flags discrepancies such as a draft entry still at the old 15% VAT. Deterministic math from [pacific-customs-kit](https://github.com/Heya-56/pacific-customs-kit) |
+| 📷 Photo of an invoice (camera button) | `read_trade_document`: Amazon Bedrock transcribes the photo or PDF with a strict JSON Schema (forced tool use + one repair round), then the customs check runs on it |
 | "What does it cost landed in Tahiti?" | `estimate_landed_cost`: goods + freight + insurance → CIF → stacked duties/taxes (VAT compounding) + brokerage, in USD and XPF (Tahiti) or FJD (Fiji) |
 | "Read this supplier's website" | `scrape_supplier_site`: one page, robots.txt respected, SSRF-hardened, Bedrock extracts a supplier card |
 | "Watch this supplier" / "What's new?" | `watch_supplier`, `check_watchlist`: diffs new shipments since your last check |
@@ -39,7 +40,7 @@ flowchart LR
   A[Alexa+ / any MCP client] -- Streamable HTTP · MCP 2025-11-25 --> L
   V[Voice console<br/>Web Speech API] -- /agent --> L
   subgraph AWS
-    L[Lambda Function URL<br/>src/lambda.js] --> M[MCP server<br/>14 tools · MCP App · prompt]
+    L[Lambda Function URL<br/>src/lambda.js] --> M[MCP server<br/>15 tools · MCP App · prompt]
     L --> AG[Voice agent<br/>Bedrock Converse tool-use loop]
     AG --> M
     M --> D[(DynamoDB<br/>missions · watchlist · usage)]
@@ -138,7 +139,7 @@ src/lambda.js            AWS Lambda entry (Function URL → web Request)
 src/local.js             Local Node server
 src/http.js              Router: /mcp, /agent, /, /health
 src/mcp/server.js        MCP server factory, plan guard + metering, MCP App resource, prompt
-src/mcp/tools.js         The 14 tools (shared by MCP + voice agent)
+src/mcp/tools.js         The 15 tools (shared by MCP + voice agent)
 src/agent/agent.js       Bedrock tool-use loop + offline intent router
 src/core/*               Trade data, scoring, landed cost, missions, watchlist, scraper, tenants, store
 data/                    Demo fixtures + duty/freight profiles

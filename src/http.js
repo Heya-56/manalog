@@ -1,6 +1,7 @@
 // Web-standard router shared by AWS Lambda (Function URL) and the local Node server.
 //   /mcp     → MCP Streamable HTTP endpoint (spec 2025-11-25, stateless, JSON responses)
 //   /dashboard → read-only summary of the user's missions, usage and watchlist (no paid calls)
+//   /document → read a photo/PDF of a trade document and run the customs check (POST, base64 JSON)
 //   /agent   → voice agent (Bedrock tool-use loop) for the Alexa+ simulation console
 //   /        → the voice console (public/index.html)
 import { readFileSync } from 'node:fs';
@@ -9,6 +10,7 @@ import { buildServer } from './mcp/server.js';
 import { resolveContext } from './core/tenants.js';
 import { runAgent } from './agent/agent.js';
 import { dashboardSummary } from './core/dashboard.js';
+import { executeTool } from './mcp/server.js';
 import { bedrockEnabled } from './core/bedrock.js';
 import { config } from './core/config.js';
 
@@ -60,6 +62,13 @@ export async function handle(req) {
 
   if (url.pathname === '/dashboard' && req.method === 'GET') {
     try { return json(await dashboardSummary(ctx)); } catch (e) { console.error(e); return json({ error: e.message }, 500); }
+  }
+
+  if (url.pathname === '/document' && req.method === 'POST') {
+    let body;
+    try { body = await req.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+    const r = await executeTool(ctx, 'read_trade_document', body ?? {}).catch((e) => ({ error: true, speech: e.message, data: null }));
+    return json({ reply: r.speech, calls: [{ name: 'read_trade_document', args: { mediaType: body?.mediaType ?? null, file: body?.fileBase64 ? 'attached' : 'sample' }, speech: r.speech, data: r.data }] }, r.error ? 400 : 200);
   }
 
   if (url.pathname === '/agent' && req.method === 'POST') {

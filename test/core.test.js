@@ -293,3 +293,53 @@ test('voice router sends Fiji requests to the FJ destination', async () => {
   assert.equal(r.calls[0].args.destination, 'FJ');
   assert.match(r.reply, /FJD/);
 });
+
+test('document reading: strict schema, one repair round, ports mapped by code, then the customs check', async () => {
+  const { extractDocument, toKitDocuments } = await import('../src/core/doc-extract.js');
+  const { checkCustomsDocuments } = await import('../src/core/customs-check.js');
+  const calls = [];
+  const good = {
+    documentType: 'commercial_invoice', invoiceNumber: 'CPI-2026-0142', invoiceDate: '2026-09-28',
+    seller: { name: 'Coral Pack Industries (demo)', country: 'CN', tin: null }, buyer: { name: 'Bula Naturals Ltd (demo)', country: 'fj', tin: null },
+    currency: 'usd', incoterm: 'cif',
+    lines: [{ description: 'Amber glass bottle 100 ml', hsCode: '7010.90', originCountry: 'CN', quantity: 20000, unit: 'pcs', unitPrice: 0.18, lineTotal: 3600 },
+      { description: 'Aluminium screw cap', hsCode: null, originCountry: 'CN', quantity: 20000, unit: 'pcs', unitPrice: 0.02, lineTotal: 400 }],
+    freight: 350, insurance: 21.85, total: 4371.85, portOfDischarge: 'Suva Port',
+    lowConfidenceFields: ['lines.1.unitPrice'], unreadable: ['HS code of line 2 (stamp)'], imageQuality: 'poor',
+  };
+  const fake = async (req) => {
+    calls.push(req);
+    const input = calls.length === 1 ? { ...good, imageQuality: 'blurry' } : good; // 1st answer breaks the schema
+    return { input, message: { role: 'assistant', content: [{ toolUse: { toolUseId: `t${calls.length}`, name: req.name, input } }] } };
+  };
+  const x = await extractDocument({ bytes: new Uint8Array([1, 2, 3]), mediaType: 'image/jpeg', useBedrock: true, _structured: fake, _enabled: () => true });
+  assert.equal(x.engine, 'bedrock');
+  assert.equal(x.attempts, 2, 'one repair round after a schema error');
+  assert.ok(calls[0].content[0].image, 'the photo is sent as an image block');
+  assert.equal(calls[0].schema.type, 'object');
+  assert.ok(calls[1].content[0].toolResult, 'the repair round answers the tool call with the schema errors');
+  assert.equal(x.invoice.portOfDischarge, 'FJSUV', 'port names are mapped to UN/LOCODEs by code, not by the model');
+  assert.equal(x.invoice.currency, 'USD');
+  assert.equal(x.invoice.buyer.tin, undefined);
+  const r = checkCustomsDocuments({ invoice: x.invoice, fxRate: 2.25, fiscalDutyRate: 0.15 });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.warnings.map((w) => w.code).sort(), ['buyer_tin_missing', 'hs_missing']);
+  assert.equal(r.charges.lines.find((l) => l.code === 'vat').amount, 1414.02);
+  assert.equal(toKitDocuments({ documentType: 'other', lowConfidenceFields: [], unreadable: [], imageQuality: 'good' }).invoice, undefined);
+  await assert.rejects(extractDocument({ bytes: new Uint8Array([1]), mediaType: 'image/tiff', useBedrock: true, _structured: fake, _enabled: () => true }), /Unsupported file type/);
+});
+
+test('document reading without Bedrock (community plan / pause mode) uses the sample and costs nothing', async () => {
+  process.env.MANALOG_ENFORCE_PLANS = 'true';
+  try {
+    const anon = resolveContext({});
+    const r = await executeTool(anon, 'read_trade_document', { fileBase64: Buffer.from('fake image').toString('base64'), mediaType: 'image/jpeg' });
+    assert.equal(r.error, undefined);
+    assert.equal(r.data.extraction.engine, 'demo');
+    assert.match(r.data.extraction.note, /Bedrock is not enabled/);
+    assert.match(r.speech, /^Using the sample invoice/);
+    const res = await handler({ rawPath: '/document', rawQueryString: '', requestContext: { http: { method: 'POST' } }, headers: { host: 'x', 'content-type': 'application/json' }, body: JSON.stringify({}), isBase64Encoded: false });
+    assert.equal(res.statusCode, 200);
+    assert.equal(JSON.parse(res.body).calls[0].data.errors.length, 2);
+  } finally { delete process.env.MANALOG_ENFORCE_PLANS; }
+});

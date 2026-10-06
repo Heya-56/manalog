@@ -38,6 +38,29 @@ export async function converse({ system, messages, tools, maxTokens = config.bed
   }));
 }
 
+/**
+ * Structured output: force the model to answer by calling ONE tool whose input schema is our JSON Schema,
+ * so the reply is always a JSON object of that shape (no free text to parse).
+ * @param {object} o
+ * @param {string} o.system
+ * @param {Array} o.content  user content blocks (text, image, document)
+ * @param {string} o.name    tool name
+ * @param {object} o.schema  JSON Schema (type: object)
+ */
+export async function structured({ system, content, name, description, schema, maxTokens = 4000, history = [] }) {
+  const cl = await c();
+  const r = await cl.send(new mod.ConverseCommand({
+    modelId: config.bedrock.modelId,
+    system: [{ text: system }],
+    messages: [...history, { role: 'user', content }],
+    toolConfig: { tools: [{ toolSpec: { name, description, inputSchema: { json: schema } } }], toolChoice: { tool: { name } } },
+    inferenceConfig: { maxTokens, temperature: 0 },
+  }));
+  const msg = r.output?.message;
+  const use = (msg?.content ?? []).find((b) => b.toolUse)?.toolUse;
+  return { input: use?.input ?? null, message: msg, usage: r.usage };
+}
+
 /** Extract a JSON object from model text (tolerates code fences). */
 export function parseJson(text) {
   const m = String(text).match(/\{[\s\S]*\}/);

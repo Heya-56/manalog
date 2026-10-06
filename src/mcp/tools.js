@@ -13,6 +13,8 @@ import { watchSupplier, unwatchSupplier, checkWatchlist } from '../core/watchlis
 import { usage } from '../core/tenants.js';
 import { config } from '../core/config.js';
 import { checkCustomsDocuments, speakCheck } from '../core/customs-check.js';
+import { extractDocument } from '../core/doc-extract.js';
+import { hasFeature } from '../core/tenants.js';
 import { demoDocuments, DEFAULT_DEMO_DOCUMENT } from '../../data/demo-documents.js';
 
 const dest = z.string().default('PF').describe('Destination profile code: PF (French Polynesia/Tahiti), FJ (Fiji), US, FR');
@@ -115,6 +117,31 @@ export const tools = [
       const input = demo ? { ...demo, country: 'FJ' } : a;
       const r = checkCustomsDocuments(input);
       return { speech: (demo ? 'Using the demo file. ' : '') + speakCheck(r), data: { ...r, demo: demo ? demo.title : null } };
+    },
+  },
+  {
+    name: 'read_trade_document', title: 'Read a trade document (photo or PDF)', feature: 'landed_cost',
+    description: 'Read a commercial invoice or bill of lading from a photo or PDF (Amazon Bedrock, strict JSON Schema output; bad wharf photos are expected and unreadable fields come back empty), then run the full customs check on it. Omit the file to use the built-in sample. Use for "read this invoice", "check this photo".',
+    schema: {
+      fileBase64: z.string().max(5_200_000).optional().describe('The photo or PDF, base64-encoded (max 3.75 MB before encoding)'),
+      mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']).optional(),
+      country: z.enum(['FJ']).default('FJ'),
+      fxRate: z.number().positive().optional().describe('Destination currency per 1 unit of the invoice currency'),
+      fiscalDutyRate: z.number().min(0).max(5).optional().describe('Exact tariff rate as a fraction if known'),
+    },
+    annotations: { readOnlyHint: true },
+    async handler(ctx, a) {
+      // Bedrock (paid) only for plans with AI features; others get the bundled demo transcription.
+      const bytes = a.fileBase64 ? Buffer.from(a.fileBase64, 'base64') : null;
+      const x = await extractDocument({ bytes, mediaType: a.mediaType, useBedrock: hasFeature(ctx, 'mission') });
+      const demo = x.engine === 'demo' ? demoDocuments[DEFAULT_DEMO_DOCUMENT] : null;
+      const unclear = (x.transcription.lowConfidenceFields?.length ?? 0) + (x.transcription.unreadable?.length ?? 0);
+      const intro = x.engine === 'demo' ? 'Using the sample invoice. ' : `I read the ${x.transcription.documentType === 'bill_of_lading' ? 'bill of lading' : 'invoice'}${unclear ? `; ${unclear} spot${unclear === 1 ? ' was' : 's were'} hard to read, please check them` : ''}. `;
+      if (!x.invoice) {
+        return { speech: `${intro}It is not a commercial invoice, so I saved what I read but did not compute charges.`, data: { extraction: x, check: null } };
+      }
+      const check = checkCustomsDocuments({ invoice: x.invoice, billOfLading: x.billOfLading, declared: x.declared, country: a.country, fxRate: a.fxRate ?? demo?.fxRate, fiscalDutyRate: a.fiscalDutyRate ?? demo?.fiscalDutyRate });
+      return { speech: intro + speakCheck(check), data: { ...check, extraction: { engine: x.engine, attempts: x.attempts, imageQuality: x.transcription.imageQuality, lowConfidenceFields: x.transcription.lowConfidenceFields, unreadable: x.transcription.unreadable, note: x.note }, demo: demo ? demo.title : null } };
     },
   },
   {

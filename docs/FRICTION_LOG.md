@@ -26,7 +26,7 @@
 - **Expected:** A developer console page or simulator where a builder can paste an MCP endpoint and an auth header, then talk to it on an Echo device or a test simulator.
 - **Actual:** We did not find a self-service path to attach our endpoint to an Alexa+ device from our account and region, so we could not run a real-device test before the deadline.
 - **Severity:** High (it blocks testing on the target platform)
-- **Workaround:** Followed the path the rules allow: (1) the official MCP SDK client (`npm run e2e`, run from AWS CloudShell) initializes, lists the 14 tools and calls them on the live Lambda endpoint with protocol 2025-11-25; (2) a browser voice console simulates the Alexa+ experience (Web Speech API + Bedrock agent) against the same tools. Both were tested repeatedly in voice mode and worked.
+- **Workaround:** Followed the path the rules allow: (1) the official MCP SDK client (`npm run e2e`, run from AWS CloudShell) initializes, lists the tools and calls them on the live Lambda endpoint with protocol 2025-11-25; (2) a browser voice console simulates the Alexa+ experience (Web Speech API + Bedrock agent) against the same tools. Both were tested repeatedly in voice mode and worked.
 - **Suggestion:** Publish a step-by-step "bring your own MCP server to Alexa+" guide, with an Alexa+ simulator that accepts an MCP URL and API key, usable from any region.
 
 ## 4. Alexa+ access for builders and users outside the US (French Polynesia, Fiji)

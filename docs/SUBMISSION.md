@@ -14,10 +14,11 @@ Ask Alexa to source it and check it: proven suppliers from customs data, landed 
 In French Polynesia, a monoï maker who needs 2,000 glass bottles has no purchasing department, sits 6,000 km from the nearest factory, and pays freight, customs duty, local development tax and VAT on top of the factory price. Finding a reliable supplier takes weeks of guesswork. Big companies use trade-data analysts; island makers use Facebook groups. We wanted the analyst in a voice.
 
 ## What it does
-ManaLog gives Alexa+ an agentic import/export workflow through 14 MCP tools:
+ManaLog gives Alexa+ an agentic import/export workflow through 15 MCP tools:
 - **Sourcing missions:** one sentence triggers the full chain. It finds suppliers that have *actually shipped* the product (US customs bills of lading via ImportYeti), enriches and scores them 0–100 with reasons you can hear, estimates the **landed cost to the destination** (freight, insurance, stacked duties and taxes, brokerage, in USD and XPF), filters by budget, shortlists three and drafts an RFQ email with Amazon Bedrock.
 - **Island products, not just container cargo:** the request is turned into precise English search terms and HS codes (Bedrock), so "fournitures de tatouage" or "coquillages" work. When US customs data is thin, ManaLog adds manufacturers found on the web (homepages read for contacts) and small-lot AliExpress offers with real prices, and weights the scores with official UN Comtrade statistics on where Tahiti actually imports each product from. Every supplier says where it came from.
 - **Pacific customs check (Fiji first):** "check my invoice for Suva" verifies the invoice arithmetic, HS codes, importer TIN and the bill of lading (port, consignee, weight), then recomputes fiscal duty and VAT with the official FRCS formula (VAT 12.5% since 1 August 2025) and flags a draft entry still using the old 15% rate. The math is deterministic, in integer cents, from our new open-source library **pacific-customs-kit** (MIT); the LLM never computes a tax.
+- **Read a photo of the paperwork:** tap the camera, photograph an invoice on the wharf. Amazon Bedrock transcribes it with a strict JSON Schema (structured output by forced tool use, one automatic repair round if the answer breaks the schema, unreadable fields left empty instead of guessed), port names are mapped to UN/LOCODEs by code, then the same customs check runs. Sample: `docs/samples/sample-invoice-photo.jpg`.
 - **State across sessions:** "compare them", "what did you find last time", "what's new with my suppliers" (DynamoDB).
 - **Human-in-the-loop:** "send it" approves the RFQ and returns a one-tap email. Nothing reaches a supplier without approval.
 - **Export prospecting:** "who buys vanilla in the US?" lists US importers of your product.
@@ -48,7 +49,7 @@ alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb,
 - Local: `npm install && npm start`, then open http://localhost:8787 (no keys needed, demo data)
 - Hosted console: https://wp4itqxfeguy5geyvssszy3aa40mwrro.lambda-url.us-west-2.on.aws/
 - MCP endpoint: https://wp4itqxfeguy5geyvssszy3aa40mwrro.lambda-url.us-west-2.on.aws/mcp with header `x-api-key: <JUDGES_KEY>` (Pro plan, free until judging ends). The console accepts it as `?key=<JUDGES_KEY>`. Paste the real key (local file `.judges-key`) only in the private Devpost field, never in the repo.
-- Demo script: "Find me 2000 glass bottles for my monoi" → "Compare the suppliers" → "Send it" → "Who buys vanilla in the US?" → "Check my invoice for Suva" (Fiji customs check on a fictional demo file; works without a key)
+- Demo script: "Find me 2000 glass bottles for my monoi" → "Compare the suppliers" → "Send it" → "Who buys vanilla in the US?" → "Check my invoice for Suva" (Fiji customs check on a fictional demo file; works without a key) → camera button with `docs/samples/sample-invoice-photo.jpg` (Bedrock reading, needs the judges' key)
 
 ## Open Source mini-challenge
 - **Contribution URL (new open-source project created during the hackathon):** https://github.com/Heya-56/pacific-customs-kit (MIT)
@@ -62,8 +63,8 @@ alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb,
 > DRAFT written from our build notes. Heya: read it, change anything that does not match your experience, then paste it into Devpost.
 
 **Which developer tools, APIs and SDKs did you use and for what?**
-- **MCP TypeScript SDK 1.30.1** (`@modelcontextprotocol/sdk`): the Alexa+ server. Streamable HTTP transport (spec 2025-11-25) in stateless JSON mode, 14 tools with structured output, an MCP App resource (`ui://manalog/mission-card.html`), a prompt and a resource. Also the SDK client for our end-to-end test.
-- **Amazon Bedrock** (Converse API with tool use, Claude Sonnet 4.5 through the `us.` cross-region inference profile in us-west-2): the voice agent loop that calls the same 14 tools, quote-request drafting, supplier web-page extraction and product-to-HS-code planning.
+- **MCP TypeScript SDK 1.30.1** (`@modelcontextprotocol/sdk`): the Alexa+ server. Streamable HTTP transport (spec 2025-11-25) in stateless JSON mode, 15 tools with structured output, an MCP App resource (`ui://manalog/mission-card.html`), a prompt and a resource. Also the SDK client for our end-to-end test.
+- **Amazon Bedrock** (Converse API with tool use, Claude Sonnet 4.5 through the `us.` cross-region inference profile in us-west-2): the voice agent loop that calls the same 15 tools, quote-request drafting, supplier web-page extraction and product-to-HS-code planning.
 - **AWS Lambda** (Node.js 22, arm64, Function URL): hosts the MCP endpoint, the voice agent and the console with one handler.
 - **Amazon DynamoDB** (on-demand, single table): missions, watchlist and per-tenant usage metering, keyed by tenant + user.
 - **AWS SAM / CloudFormation**: infrastructure as code and one-command deploys (`scripts/deploy.ps1`), including secret parameters (judges' key, data-source keys) and a pause mode.

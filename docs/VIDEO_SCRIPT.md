@@ -13,15 +13,15 @@
 - Say: *"Send it."* → "RFQ approved", one tap to email. "Nothing is sent without me."
 
 **1:25–1:55 · Pacific customs check (Fiji)**
-- Say: *"Check my invoice for Suva."*
-- Show the card: 2 problems. "The draft entry still uses Fiji's old 15% VAT; it has been 12.5% since August 2025. And the bill of lading says Lautoka, not Suva."
+- Tap the camera and photograph the printed sample invoice (`docs/samples/sample-invoice-photo.jpg`), or pick the file.
+- Show the card: "Read by Amazon Bedrock (strict JSON Schema)", the hard-to-read spots, then the problems. "The handwritten draft entry still uses Fiji's old 15% VAT; it has been 12.5% since August 2025." Then say *"Check my invoice for Suva"* to show the full file with the bill of lading issued for the wrong port (Lautoka).
 - "The model never computes a tax: the math comes from pacific-customs-kit, our new open-source library, with an official source for every rate."
 
 **1:55–2:10 · Export side**
 - Say: *"Who buys vanilla in the US?"* → US importers card. "The same data that finds suppliers finds customers."
 
 **2:10–2:35 · Under the hood** (architecture diagram from the README plus the terminal)
-- `npm run e2e`: the official MCP SDK client lists the 14 tools on the Lambda endpoint (protocol 2025-11-25).
+- `npm run e2e`: the official MCP SDK client lists the 15 tools on the Lambda endpoint (protocol 2025-11-25).
 - "Alexa+ connects to this same endpoint. Bedrock runs the agent, DynamoDB remembers missions, Lambda hosts it all."
 - If you have Alexa+ access: 10 seconds of the real device calling ManaLog.
 
