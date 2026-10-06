@@ -2,12 +2,18 @@
 # Prereqs (checked below): Node 20+, AWS CLI v2 logged in (`aws configure`), AWS SAM CLI.
 # Usage:  .\scripts\deploy.ps1                 (demo data)
 #         .\scripts\deploy.ps1 -IyKey "xxxx"   (live ImportYeti data)
-#         .\scripts\deploy.ps1 -Pause         (no spending: demo data + no Bedrock, even if a key was deployed before)
+#         .\scripts\deploy.ps1 -BraveKey "x" -AliKey "x" -AliSecret "x" [-ComtradeKey "x"]   (extra live sources)
+#         .\scripts\deploy.ps1 -Pause        (no spending: demo data + no Bedrock, even if a key was deployed before)
 param(
   [string]$IyKey = "",
   [string]$Region = "us-west-2",
   [string]$Model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
   [string]$JudgesKey = "",
+  [string]$BraveKey = "",
+  [string]$AliKey = "",
+  [string]$AliSecret = "",
+  [string]$AliTrackingId = "",
+  [string]$ComtradeKey = "",
   [switch]$DisableBedrock,
   [switch]$Pause
 )
@@ -56,6 +62,12 @@ if ($LASTEXITCODE -ne 0) { throw 'sam build failed' }
 $dataMode = if ($Pause) { "demo" } else { "auto" }
 $params = @("DataMode=$dataMode", "BedrockEnabled=$bedrock", "BedrockModelId=$Model", "EnforcePlans=true", "JudgesKey=$JudgesKey")
 if ($IyKey) { $params += "ImportYetiApiKey=$IyKey" }
+# Extra sources: omitted keys keep their previously deployed value (sam deploy reuses parameters).
+if ($BraveKey) { $params += "BraveApiKey=$BraveKey" }
+if ($AliKey) { $params += "AliExpressAppKey=$AliKey" }
+if ($AliSecret) { $params += "AliExpressAppSecret=$AliSecret" }
+if ($AliTrackingId) { $params += "AliExpressTrackingId=$AliTrackingId" }
+if ($ComtradeKey) { $params += "ComtradeApiKey=$ComtradeKey" }
 sam deploy --no-confirm-changeset --region $Region --parameter-overrides $params
 if ($LASTEXITCODE -ne 0) { throw 'sam deploy failed' }
 

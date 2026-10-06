@@ -75,3 +75,21 @@
 - **Severity:** High (live scoring silently degraded; demo mode hid it)
 - **Workaround:** Normalizer rewritten against the real payloads (ISO code → country name via `Intl.DisplayNames`, 12-month sum from `companies_table`, DD/MM/YYYY → ISO, website fallback), null-safe merge, and a unit test built from anonymized real responses. Profiles cost 1 credit each, so only the top 3 of a mission are enriched.
 - **Suggestion:** Publish a response schema (field names, date format, units) per endpoint; we could not load docs.importyeti.com from our tooling (HTTP 403) to cross-check. Adding `shipments_12m` and `most_recent_shipment` to search rows would avoid a paid profile call per supplier.
+
+## 10. UN Comtrade free preview: one year per request, ~1 request per second
+- **Task:** Find which countries supply a product to French Polynesia (reporter 258), to weight supplier scores.
+- **Steps:** `GET https://comtradeapi.un.org/public/v1/preview/C/A/HS?reporterCode=258&period=2025,2024,2023&cmdCode=3215&flowCode=M`.
+- **Expected:** Several years in one call, as on the keyed `/data/v1/get` endpoint.
+- **Actual:** `{"error":"Maximum number of periods for preview is 1"}` returned as a generic HTTP 400, and back-to-back calls get `429 Rate limit is exceeded. Try again in 1 seconds.` Results also include a "World" total and "Areas, nes" buckets that are not countries, and country names that differ from common usage ("USA", "Türkiye", "Viet Nam").
+- **Severity:** Medium (looked like a malformed query until we read the body)
+- **Workaround:** Walk back one year at a time from the latest, retry 429s with a short backoff, filter out World and "nes" rows, rename to our country names. With a subscription key the adapter switches to one multi-year call.
+- **Suggestion:** Put the preview limits in the error status/message consistently (the 400 body says it, the status line does not) and document them next to the endpoint.
+
+## 11. US customs data misses what island makers actually buy
+- **Task:** Source yarn, seashells and tattoo supplies for small shops in Tahiti.
+- **Steps:** Live missions on ImportYeti with "yarn", "tattoo", "shells".
+- **Expected:** A useful shortlist like for glass bottles or coconut oil.
+- **Actual:** US bills of lading only cover ocean freight into the US. Small-lot craft supplies bought by island shops (often by post, from China, New Zealand or France) are mostly absent, and the API matches only English shipping-document wording, so French requests found nothing.
+- **Severity:** High for our target users
+- **Workaround:** Search planning (Bedrock → English terms + HS codes), then web search, AliExpress small-lot offers and UN Comtrade origin statistics as additional sources, each labelled in the answer.
+- **Suggestion:** A trade-data API covering postal/courier imports or non-US customs at a small-business price would fill this gap.

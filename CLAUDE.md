@@ -5,7 +5,7 @@ Owner speaks French — reply in French, keep code/docs in English.
 
 ## Commands
 - `npm test` (node:test) · `npm start` (localhost:8787) · `npm run e2e [mcpUrl] [key]`
-- Deploy: `powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 [-IyKey <key>]` · pause (no spending): `... deploy.ps1 -Pause`
+- Deploy: `powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 [-IyKey <key>]` · pause (no spending): `... deploy.ps1 -Pause` · extra sources: `-BraveKey`, `-AliKey -AliSecret [-AliTrackingId]`, `-ComtradeKey` (each omitted key keeps its deployed value; Comtrade works keyless)
 
 ## When asked "déploie" / "deploy"
 1. Check `aws sts get-caller-identity`; if it fails, guide `aws configure` (Access key from IAM user with AdministratorAccess for the hackathon, region us-west-2 (Oregon — closest AWS US region to Tahiti via the Honotua cable)).

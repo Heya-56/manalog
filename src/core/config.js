@@ -13,6 +13,27 @@ export const config = {
     apiKey: env('IY_API_KEY', ''),
     timeoutMs: Number(env('IY_TIMEOUT_MS', '12000')),
   },
+  // Extra live sources (each one is skipped when its key is empty; none is called in demo mode).
+  // Web search finds manufacturers and wholesalers worldwide (not only exporters to the US).
+  webSearch: {
+    apiKey: env('BRAVE_API_KEY', ''),
+    baseUrl: env('BRAVE_BASE_URL', 'https://api.search.brave.com/res/v1/web/search'),
+    timeoutMs: Number(env('WEB_SEARCH_TIMEOUT_MS', '8000')),
+  },
+  // AliExpress affiliate API: small-lot products with real prices (yarn, beads, shells, tattoo supplies...).
+  aliexpress: {
+    appKey: env('ALIEXPRESS_APP_KEY', ''),
+    appSecret: env('ALIEXPRESS_APP_SECRET', ''),
+    trackingId: env('ALIEXPRESS_TRACKING_ID', ''),
+    baseUrl: env('ALIEXPRESS_BASE_URL', 'https://api-sg.aliexpress.com/sync'),
+    timeoutMs: Number(env('ALIEXPRESS_TIMEOUT_MS', '8000')),
+  },
+  // UN Comtrade: which countries supply a product to the destination (free preview API works without a key).
+  comtrade: {
+    apiKey: env('COMTRADE_API_KEY', ''),
+    baseUrl: env('COMTRADE_BASE_URL', 'https://comtradeapi.un.org'),
+    timeoutMs: Number(env('COMTRADE_TIMEOUT_MS', '12000')),
+  },
   // Storage: "dynamodb" on AWS, "memory" locally/tests.
   storage: env('MANALOG_STORAGE', process.env.MANALOG_TABLE ? 'dynamodb' : 'memory'),
   table: env('MANALOG_TABLE', ''),

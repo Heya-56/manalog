@@ -1,7 +1,8 @@
 // Agentic sourcing missions: one voice request → multi-step autonomous workflow
 // (trade data → enrichment → scoring → landed cost → shortlist → RFQ draft), persisted across sessions.
 import { randomUUID } from 'node:crypto';
-import { rankSuppliers, supplierProfile, mergeSupplier, dataMode } from './importyeti.js';
+import { supplierProfile, mergeSupplier, dataMode } from './importyeti.js';
+import { discoverSuppliers } from './discovery.js';
 import { rankScored } from './scoring.js';
 import { estimateLandedCost } from './landed-cost.js';
 import { bedrockEnabled, generate } from './bedrock.js';
@@ -31,18 +32,26 @@ export async function runMission(ctx, input) {
   const steps = [];
   const log = (s) => steps.push({ at: new Date().toISOString(), step: s });
 
-  const found = await rankSuppliers(product, { limit: 8 });
-  log(`Queried ${found.source} US customs data: ${found.suppliers.length} suppliers ship "${found.product}"`);
+  const found = await discoverSuppliers(product, { limit: 8, destination });
+  found.steps.forEach(log);
   if (!found.suppliers.length) {
-    return { status: 'no_results', product: found.product, steps, speech: `I couldn't find proven exporters of ${product}. Try a more common product name, like glass bottle or coconut oil.` };
+    const tried = found.plan ? found.plan.terms.join(', ') : found.product;
+    return { status: 'no_results', product: found.product, steps, speech: language === 'fr'
+      ? `Je n'ai trouvé aucun fournisseur pour ${product} (recherché : ${tried}). Essayez un nom de produit plus précis.`
+      : `I couldn't find suppliers of ${product} (searched: ${tried}). Try a more specific product name.` };
   }
 
-  // Enrich the top candidates (live mode only adds data; demo fixtures are already complete)
-  const enriched = await Promise.all(found.suppliers.map(async (s, i) => (i < 3 && dataMode() === 'live' && s.slug ? mergeSupplier(s, await supplierProfile(s.slug).catch(() => null)) : s)));
-  log('Enriched top candidates with supplier profiles');
+  // Enrich the top customs candidates with their full profile (live mode only; demo fixtures are already complete)
+  let profiled = 0;
+  const enriched = await Promise.all(found.suppliers.map(async (s) => {
+    if (s.source !== 'customs' || !s.slug || dataMode() !== 'live' || profiled >= 3) return s;
+    profiled++;
+    return mergeSupplier(s, await supplierProfile(s.slug).catch(() => null));
+  }));
+  if (profiled) log(`Enriched ${profiled} customs candidates with supplier profiles`);
 
-  const scored = rankScored(enriched, { destination, quantity, priority });
-  log(`Scored ${scored.length} suppliers on track record, recency, proximity to ${destination}, MOQ fit and reachability`);
+  const scored = rankScored(enriched, { destination, quantity, priority, origins: found.origins?.origins });
+  log(`Scored ${scored.length} suppliers on track record, recency, proximity to ${destination}, MOQ fit, reachability${found.origins?.origins?.length ? ' and official trade statistics' : ''}`);
 
   const withCost = scored.map((s) => {
     // Customs data has volumes, not prices: fall back to the user's target FOB price when the supplier has none.
@@ -80,21 +89,29 @@ export async function runMission(ctx, input) {
 
   const mission = {
     id: randomUUID().slice(0, 8), type: 'sourcing', status: 'shortlisted', createdAt: new Date().toISOString(),
-    input: { product: found.product, quantity, destination, unitWeightKg, maxUnitLandedUsd, priority, mode },
+    input: { product: found.product, requested: product, quantity, destination, unitWeightKg, maxUnitLandedUsd, priority, mode },
     shortlist: shortlist.map((s) => ({
       slug: s.slug, name: s.name, country: s.country, score: s.score, reasons: s.reasons, moq: s.moq, email: s.email, website: s.website,
+      source: s.source ?? 'customs', url: s.url ?? null, offer: s.source === 'aliexpress' ? s.topProducts?.[0] ?? null : null,
       unitPriceUsd: s.unitPriceUsd ?? targetUnitPriceUsd ?? null, priceSource: s.unitPriceUsd ? 'supplier' : (targetUnitPriceUsd ? 'your target price' : null), unitLandedUsd: s.landed?.unitLandedUsd ?? null, localUnit: s.landed?.local ?? null, transitDays: s.landed?.transitDays ?? null,
     })),
     rfq: { to: top.name, email: top.email, ...rfq, status: 'draft' },
-    steps, dataSource: found.source,
+    steps, dataSource: found.source, counts: found.counts, origins: found.origins ?? null,
+    searchTerms: found.plan?.terms ?? null, regulated: found.plan?.regulated ?? null,
   };
   await store().put(userPk(ctx), `MISSION#${mission.id}`, mission);
 
   const cur = top.landed?.local;
-  mission.speech = `Done. I checked ${scored.length} proven exporters of ${found.product}. ` +
-    `Best match: ${top.name} in ${top.country}, score ${top.score} out of 100` +
+  const c = found.counts;
+  const checked = found.source === 'live' && (c.web || c.aliexpress)
+    ? `${scored.length} suppliers of ${found.product}: ${c.customs} proven exporters from US customs, ${c.web ?? 0} from the web and ${c.aliexpress ?? 0} AliExpress offers`
+    : `${scored.length} proven exporters of ${found.product}`;
+  mission.speech = `Done. I checked ${checked}. ` +
+    `Best match: ${top.name}${top.country ? ` in ${top.country}` : ''}, score ${top.score} out of 100` +
     (cur ? `, about ${Math.round(cur.unit)} ${cur.currency} per unit landed in ${destination === 'PF' ? 'Tahiti' : destination}` : '') +
-    `. I drafted a quote request for them. Say "send it" to approve, or "compare" to hear the other two.`;
+    (top.source === 'aliexpress' ? '. It can be ordered online in small quantities' : '') +
+    `. I drafted a quote request for them. Say "send it" to approve, or "compare" to hear the other two.` +
+    (found.plan?.regulated ? ` Note: ${found.plan.regulated}` : '');
   return mission;
 }
 

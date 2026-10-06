@@ -92,7 +92,7 @@ export function extractFromHtml(html, baseUrl) {
   return { title, description, emails, phones, links, textSample: text.slice(0, 4000) };
 }
 
-export async function scrapeSupplierSite(rawUrl, { product } = {}) {
+export async function scrapeSupplierSite(rawUrl, { product, ai = true } = {}) {
   const u = await assertPublicUrl(rawUrl);
   let robots = '';
   try { robots = (await safeFetch(`${u.origin}/robots.txt`)).text; } catch { /* no robots.txt → allowed */ }
@@ -102,7 +102,7 @@ export async function scrapeSupplierSite(rawUrl, { product } = {}) {
   const page = await safeFetch(u.toString());
   const data = extractFromHtml(page.text, page.url);
   let card = null;
-  if (bedrockEnabled()) {
+  if (ai && bedrockEnabled()) {
     const out = await generate(
       'You extract B2B supplier facts from website text. Reply ONLY with JSON: {"company":"","country":"","products":[],"moq":null,"certifications":[],"exportsTo":[],"contactEmail":null,"summary":""}. Use null when unknown; never invent.',
       `Product of interest: ${product ?? 'unspecified'}\nURL: ${page.url}\nTitle: ${data.title}\nText:\n${data.textSample}`,

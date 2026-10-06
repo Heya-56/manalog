@@ -21,6 +21,28 @@ Parameters:
     NoEcho: true
     Default: ''
     Description: Leave empty to run on bundled demo data
+  BraveApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Brave Search API key (web supplier discovery); empty = source skipped
+  AliExpressAppKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: AliExpress affiliate app key (small-lot offers with prices); empty = source skipped
+  AliExpressAppSecret:
+    Type: String
+    NoEcho: true
+    Default: ''
+  AliExpressTrackingId:
+    Type: String
+    Default: ''
+  ComtradeApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: UN Comtrade subscription key; empty = free preview endpoint
   JudgesKey:
     Type: String
     NoEcho: true
@@ -45,7 +67,7 @@ Globals:
     Runtime: nodejs22.x
     Architectures: [arm64]
     MemorySize: 512
-    Timeout: 30
+    Timeout: 90   # a mission may query customs, web, AliExpress and Comtrade, then Bedrock
 
 Resources:
   ManaLogTable:
@@ -74,6 +96,11 @@ Resources:
           BEDROCK_MODEL_ID: !Ref BedrockModelId
           IY_API_KEY: !Ref ImportYetiApiKey
           MANALOG_DATA_MODE: !Ref DataMode
+          BRAVE_API_KEY: !Ref BraveApiKey
+          ALIEXPRESS_APP_KEY: !Ref AliExpressAppKey
+          ALIEXPRESS_APP_SECRET: !Ref AliExpressAppSecret
+          ALIEXPRESS_TRACKING_ID: !Ref AliExpressTrackingId
+          COMTRADE_API_KEY: !Ref ComtradeApiKey
           MANALOG_DEMO_KEY: !Ref JudgesKey
           MANALOG_ENFORCE_PLANS: !Ref EnforcePlans
           MANALOG_TENANTS_JSON: !Ref TenantsJson

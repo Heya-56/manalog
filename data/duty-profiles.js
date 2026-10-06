@@ -65,5 +65,5 @@ export const categoryHints = {
   packaging: ['bottle', 'jar', 'bag', 'box', 'packaging', 'label', 'kraft', 'pump', 'flacon'],
   food_raw: ['vanilla', 'spice', 'cocoa', 'coffee', 'sugar', 'flour'],
   cosmetic_inputs: ['oil', 'butter', 'essential', 'fragrance', 'wax', 'soap', 'monoi'],
-  craft_materials: ['pearl', 'shell', 'bead', 'wood', 'pandanus', 'fiber', 'tapa', 'resin', 'polymer'],
+  craft_materials: ['pearl', 'shell', 'bead', 'wood', 'pandanus', 'fiber', 'tapa', 'resin', 'polymer', 'yarn', 'thread'],
 };

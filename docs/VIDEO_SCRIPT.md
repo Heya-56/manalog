@@ -15,7 +15,7 @@
 - Optional: say it in French: *"Trouve-moi 1500 flacons pour mon monoï."*
 
 **1:50–2:25 · Under the hood** (architecture diagram from the README plus the terminal)
-- `npm run e2e`: the official MCP SDK client lists the 12 tools on the Lambda endpoint (protocol 2025-11-25).
+- `npm run e2e`: the official MCP SDK client lists the 13 tools on the Lambda endpoint (protocol 2025-11-25).
 - "Alexa+ connects to this same endpoint. Bedrock runs the agent, DynamoDB remembers missions, Lambda hosts it all."
 - If you have Alexa+ access: 10 seconds of the real device calling ManaLog.
 

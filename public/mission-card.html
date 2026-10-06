@@ -34,7 +34,7 @@ function render(m) {
   const rows = m.shortlist.map((s) => `
     <div class="row">
       <div class="score">${esc(s.score)}</div>
-      <div><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.country)} · MOQ ${esc(s.moq ?? '?')} · ${esc((s.reasons || [])[0] || '')}</div></div>
+      <div><div class="name">${esc(s.name)}</div><div class="meta">${esc([s.country, { customs: 'US customs', web: 'web', aliexpress: 'AliExpress' }[s.source]].filter(Boolean).join(' · '))} · MOQ ${esc(s.moq ?? '?')} · ${esc((s.reasons || [])[0] || '')}</div></div>
       <div class="price">${s.localUnit ? `<b>${esc(s.localUnit.unit)} ${esc(s.localUnit.currency)}</b><span class="meta">per unit landed</span>` : '<span class="meta">price on request</span>'}</div>
     </div>`).join('');
   document.getElementById('app').innerHTML = `

@@ -1,7 +1,10 @@
 // Tool registry — single source of truth used by BOTH the MCP server (Alexa+) and the Bedrock voice agent.
 // Each handler returns { speech, data }: `speech` is short and voice-ready, `data` is structured for cards/UIs.
 import { z } from 'zod';
-import { rankSuppliers, rankBuyers, searchShipments, knownDemoProducts, dataMode } from '../core/importyeti.js';
+import { rankBuyers, searchShipments, knownDemoProducts, dataMode } from '../core/importyeti.js';
+import { discoverSuppliers } from '../core/discovery.js';
+import { planSearch } from '../core/terms.js';
+import { importOrigins } from '../core/comtrade.js';
 import { rankScored } from '../core/scoring.js';
 import { estimateLandedCost, listDestinations } from '../core/landed-cost.js';
 import { runMission, listMissions, getMission, updateRfqStatus } from '../core/missions.js';
@@ -16,10 +19,10 @@ export const MISSION_CARD_URI = 'ui://manalog/mission-card.html';
 
 export const tools = [
   {
-    name: 'find_suppliers', title: 'Find proven suppliers', feature: 'search',
-    description: 'Find overseas manufacturers that have ACTUALLY shipped a product (from US customs bills of lading), scored 0-100 for a small importer at the destination. Use for "who makes / where can I buy X".',
+    name: 'find_suppliers', title: 'Find suppliers', feature: 'search',
+    description: 'Find suppliers of a product, scored 0-100 for a small importer at the destination: proven exporters from US customs bills of lading first, then (live mode) manufacturers found on the web and small-lot AliExpress offers, weighted by UN Comtrade statistics. Use for "who makes / where can I buy X".',
     schema: {
-      product: z.string().min(2).describe('Product in plain words, e.g. "glass bottle", "vanilla", "kraft paper bag"'),
+      product: z.string().min(2).describe('Product in plain words, any language, e.g. "glass bottle", "fil à tricoter", "tattoo needles"'),
       destination: dest,
       quantity: z.number().int().positive().optional().describe('Planned order quantity (improves MOQ fit)'),
       country: z.string().optional().describe('Only suppliers from this origin country'),
@@ -28,11 +31,29 @@ export const tools = [
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
     async handler(ctx, a) {
-      const r = await rankSuppliers(a.product, { limit: 10, country: a.country });
-      const list = rankScored(r.suppliers, { destination: a.destination, quantity: a.quantity, priority: a.priority }).slice(0, a.limit);
-      if (!list.length) return { speech: `I found no proven exporters for ${a.product}.`, data: { ...r, suppliers: [] } };
-      const s = list.map((x, i) => `${i + 1}: ${x.name}, ${x.country}, score ${x.score}`).join('. ');
-      return { speech: `Top ${list.length} suppliers of ${r.product} for ${place(a.destination)}. ${s}.`, data: { product: r.product, source: r.source, destination: a.destination, suppliers: list } };
+      const r = await discoverSuppliers(a.product, { limit: 10, destination: a.destination, country: a.country });
+      const list = rankScored(r.suppliers, { destination: a.destination, quantity: a.quantity, priority: a.priority, origins: r.origins?.origins }).slice(0, a.limit);
+      if (!list.length) return { speech: `I found no suppliers for ${a.product}.`, data: { product: r.product, source: r.source, suppliers: [], steps: r.steps } };
+      const s = list.map((x, i) => `${i + 1}: ${x.name}${x.country ? `, ${x.country}` : ''}, score ${x.score}`).join('. ');
+      return {
+        speech: `Top ${list.length} suppliers of ${r.product} for ${place(a.destination)}. ${s}.${r.plan?.regulated ? ` Note: ${r.plan.regulated}` : ''}`,
+        data: { product: r.product, source: r.source, destination: a.destination, suppliers: list, counts: r.counts, origins: r.origins, regulated: r.plan?.regulated ?? null, steps: r.steps },
+      };
+    },
+  },
+  {
+    name: 'trade_flows', title: 'Where the destination imports from', feature: 'search',
+    description: 'Official UN Comtrade statistics: which countries supply a product to the destination (Tahiti by default), with value share and average price per kg. Use for "where does Tahiti buy X", "which country should I source X from".',
+    schema: { product: z.string().min(2).describe('Product in plain words, any language'), destination: dest },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+    async handler(ctx, a) {
+      if (dataMode() !== 'live') return { speech: 'Trade statistics are available with live data only.', data: { source: 'demo', origins: [] } };
+      const plan = await planSearch(a.product);
+      if (!plan.hsCodes.length) return { speech: `I could not match ${a.product} to a customs code. Try a more common product name.`, data: { plan, origins: [] } };
+      const r = await importOrigins(plan.hsCodes, a.destination);
+      if (!r?.origins.length) return { speech: `UN Comtrade has no recent figures for ${plan.product} into ${place(a.destination)}.`, data: { plan, ...r } };
+      const s = r.origins.slice(0, 3).map((o) => `${o.country} ${o.share} percent`).join(', ');
+      return { speech: `In ${r.period}, ${place(a.destination)} imported ${plan.product} mostly from ${s}${r.mirror ? ', according to the exporting countries' : ''}. Source: UN Comtrade.`, data: { plan, ...r } };
     },
   },
   {
@@ -77,9 +98,9 @@ export const tools = [
   },
   {
     name: 'start_sourcing_mission', title: 'Run a sourcing mission', feature: 'mission',
-    description: 'AGENTIC: one request runs the full workflow — find proven suppliers, enrich, score, estimate landed cost, filter by budget, shortlist 3, draft an RFQ email for the best one — and saves the mission for later sessions. Use for "find me X for my shop", "source N units of X".',
+    description: 'AGENTIC: one request runs the full workflow — find suppliers (US customs, then web and AliExpress in live mode), enrich, score (with UN Comtrade origin statistics), estimate landed cost, filter by budget, shortlist 3, draft an RFQ email for the best one — and saves the mission for later sessions. Use for "find me X for my shop", "source N units of X".',
     schema: {
-      product: z.string().min(2), quantity: z.number().int().positive().default(1000), destination: dest,
+      product: z.string().min(2).describe('Product in plain words, any language (e.g. "yarn", "coquillages", "tattoo needles")'), quantity: z.number().int().positive().default(1000), destination: dest,
       unitWeightKg: z.number().positive().default(0.2), maxUnitLandedUsd: z.number().positive().optional().describe('Budget per unit, landed'),
       targetUnitPriceUsd: z.number().positive().optional().describe('Expected factory (FOB) price per unit in USD, used for landed cost when the supplier price is unknown (customs data has no prices)'),
       priority: z.enum(['balanced', 'price', 'speed']).default('balanced'), mode: z.enum(['sea', 'air', 'post']).default('sea'),

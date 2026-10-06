@@ -38,15 +38,20 @@ flowchart LR
   A[Alexa+ / any MCP client] -- Streamable HTTP · MCP 2025-11-25 --> L
   V[Voice console<br/>Web Speech API] -- /agent --> L
   subgraph AWS
-    L[Lambda Function URL<br/>src/lambda.js] --> M[MCP server<br/>12 tools · MCP App · prompt]
+    L[Lambda Function URL<br/>src/lambda.js] --> M[MCP server<br/>13 tools · MCP App · prompt]
     L --> AG[Voice agent<br/>Bedrock Converse tool-use loop]
     AG --> M
     M --> D[(DynamoDB<br/>missions · watchlist · usage)]
     M --> B[Amazon Bedrock<br/>RFQ drafting · page extraction]
   end
   M --> IY[ImportYeti API<br/>US customs bills of lading]
+  M --> WS[Brave Search API<br/>manufacturers worldwide]
+  M --> AE[AliExpress affiliate API<br/>small-lot offers with prices]
+  M --> UN[UN Comtrade<br/>where the destination imports from]
   M --> W[Supplier websites<br/>robots.txt-aware scraper]
 ```
+
+**Data sources, cheapest and most proven first** (`src/core/discovery.js`): the request is first planned into precise English terms and HS codes (`src/core/terms.js`, Bedrock or a built-in dictionary). US customs data comes first; extra terms are queried only when results are thin (each query costs credits). Web search runs only when customs data is thin, AliExpress adds priced small-lot offers, and UN Comtrade adds a scoring bonus for countries that really supply the destination. Each extra source is skipped when its key is empty (`-BraveKey`, `-AliKey`/`-AliSecret`, optional `-ComtradeKey` in `scripts/deploy.ps1`; Comtrade's free preview needs no key), and demo mode never calls any of them.
 
 - **One tool registry** (`src/mcp/tools.js`) serves both the MCP server (Alexa+) and the Bedrock voice agent, so what you see in the console is exactly what Alexa+ calls.
 - **Stateless transport, stateful product.** A fresh MCP server per request (Lambda-friendly, JSON responses), while user state (missions, watchlist, usage) lives in DynamoDB, keyed by `tenant + user`.
@@ -131,7 +136,7 @@ src/lambda.js            AWS Lambda entry (Function URL → web Request)
 src/local.js             Local Node server
 src/http.js              Router: /mcp, /agent, /, /health
 src/mcp/server.js        MCP server factory, plan guard + metering, MCP App resource, prompt
-src/mcp/tools.js         The 12 tools (shared by MCP + voice agent)
+src/mcp/tools.js         The 13 tools (shared by MCP + voice agent)
 src/agent/agent.js       Bedrock tool-use loop + offline intent router
 src/core/*               Trade data, scoring, landed cost, missions, watchlist, scraper, tenants, store
 data/                    Demo fixtures + duty/freight profiles

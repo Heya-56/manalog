@@ -14,8 +14,9 @@ Ask Alexa to source it: proven suppliers from customs data, landed cost to your 
 In French Polynesia, a monoï maker who needs 2,000 glass bottles has no purchasing department, sits 6,000 km from the nearest factory, and pays freight, customs duty, local development tax and VAT on top of the factory price. Finding a reliable supplier takes weeks of guesswork. Big companies use trade-data analysts; island makers use Facebook groups. We wanted the analyst in a voice.
 
 ## What it does
-ManaLog gives Alexa+ an agentic import/export workflow through 12 MCP tools:
+ManaLog gives Alexa+ an agentic import/export workflow through 13 MCP tools:
 - **Sourcing missions:** one sentence triggers the full chain. It finds suppliers that have *actually shipped* the product (US customs bills of lading via ImportYeti), enriches and scores them 0–100 with reasons you can hear, estimates the **landed cost to the destination** (freight, insurance, stacked duties and taxes, brokerage, in USD and XPF), filters by budget, shortlists three and drafts an RFQ email with Amazon Bedrock.
+- **Island products, not just container cargo:** the request is turned into precise English search terms and HS codes (Bedrock), so "fournitures de tatouage" or "coquillages" work. When US customs data is thin, ManaLog adds manufacturers found on the web (homepages read for contacts) and small-lot AliExpress offers with real prices, and weights the scores with official UN Comtrade statistics on where Tahiti actually imports each product from. Every supplier says where it came from.
 - **State across sessions:** "compare them", "what did you find last time", "what's new with my suppliers" (DynamoDB).
 - **Human-in-the-loop:** "send it" approves the RFQ and returns a one-tap email. Nothing reaches a supplier without approval.
 - **Export prospecting:** "who buys vanilla in the US?" lists US importers of your product.
