@@ -20,7 +20,7 @@ export async function draftRfq({ supplier, product, quantity, destination, buyer
     return { generatedBy: 'bedrock', text: text.replace(/\*\*|__|^#+\s*/gm, '').trim() };
   }
   const fr = language === 'fr';
-  const port = destination === 'PF' ? (fr ? 'Papeete, Polynésie française' : 'Papeete, French Polynesia') : destination;
+  const port = { PF: fr ? 'Papeete, Polynésie française' : 'Papeete, French Polynesia', FJ: fr ? 'Suva, Fidji' : 'Suva, Fiji' }[destination] ?? destination;
   const text = fr
     ? `Objet : Demande de devis — ${product} (${quantity} unités)\n\nBonjour ${supplier.name},\n\nNous souhaitons commander ${quantity} unités de ${product}, livraison ${port}. Pourriez-vous nous indiquer :\n- prix unitaire par palier de quantité (FOB et CIF),\n- MOQ et délai de production,\n- possibilité d'échantillons,\n- certifications et code SH.\n\nMerci d'avance,\n${facts.buyer}`
     : `Subject: RFQ — ${product} (${quantity} units)\n\nHello ${supplier.name} team,\n\nWe would like a quotation for ${quantity} units of ${product}, delivered to ${port}. Could you share:\n- unit price by quantity tier (FOB and CIF),\n- MOQ and production lead time,\n- sample availability,\n- certifications and HS code.\n\nThank you,\n${facts.buyer}`;
@@ -104,14 +104,16 @@ export async function runMission(ctx, input) {
   const cur = top.landed?.local;
   const c = found.counts;
   const multi = found.source === 'live' && (c.web || c.aliexpress);
-  const place = destination === 'PF' ? 'Tahiti' : destination;
+  const place = { PF: 'Tahiti', FJ: 'Fiji' }[destination] ?? destination;
+  const placeFr = { PF: 'à Tahiti', FJ: 'aux Fidji' }[destination] ?? `à ${destination}`;
+  const unitAmount = (u) => (u < 10 ? u.toFixed(2) : Math.round(u));
   if (language === 'fr') {
     const checkedFr = multi
       ? `${scored.length} fournisseurs de ${found.product} : ${c.customs} exportateurs prouvés par les douanes américaines, ${c.web ?? 0} trouvés sur le web et ${c.aliexpress ?? 0} offres AliExpress`
       : `${scored.length} exportateurs prouvés de ${found.product}`;
     mission.speech = `C'est fait. J'ai examiné ${checkedFr}. ` +
       `Meilleur choix : ${top.name}${top.country ? `, ${top.country}` : ''}, score ${top.score} sur 100` +
-      (cur ? `, environ ${Math.round(cur.unit)} ${cur.currency} l'unité rendue à ${place}` : '') +
+      (cur ? `, environ ${unitAmount(cur.unit)} ${cur.currency} l'unité rendue ${placeFr}` : '') +
       (top.source === 'aliexpress' ? '. Il se commande en ligne, en petite quantité' : '') +
       `. J'ai préparé une demande de devis. Dites « envoie-la » pour l'approuver, ou « compare » pour entendre les deux autres. Les coûts sont des estimations.` +
       (found.plan?.regulated ? ` Attention, produit réglementé : vérifiez les règles d'importation avant de commander.` : '');
@@ -122,7 +124,7 @@ export async function runMission(ctx, input) {
     : `${scored.length} proven exporters of ${found.product}`;
   mission.speech = `Done. I checked ${checked}. ` +
     `Best match: ${top.name}${top.country ? ` in ${top.country}` : ''}, score ${top.score} out of 100` +
-    (cur ? `, about ${Math.round(cur.unit)} ${cur.currency} per unit landed in ${destination === 'PF' ? 'Tahiti' : destination}` : '') +
+    (cur ? `, about ${unitAmount(cur.unit)} ${cur.currency} per unit landed in ${place}` : '') +
     (top.source === 'aliexpress' ? '. It can be ordered online in small quantities' : '') +
     `. I drafted a quote request for them. Say "send it" to approve, or "compare" to hear the other two.` +
     (found.plan?.regulated ? ` Note: ${found.plan.regulated}` : '');

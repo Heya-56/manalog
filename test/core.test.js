@@ -241,3 +241,55 @@ test('dashboard: read-only summary of missions, KPIs and usage (no paid calls)',
   const other = await handler({ rawPath: '/dashboard', rawQueryString: '', requestContext: { http: { method: 'GET' } }, headers: { host: 'x', 'x-api-key': 'demo-judges-2026', 'x-manalog-user': 'someone-else' }, isBase64Encoded: false });
   assert.equal(JSON.parse(other.body).kpis.missions, 0, 'users are isolated');
 });
+
+test('Fiji destination: landed cost follows the FRCS formula from pacific-customs-kit', async () => {
+  const { computeImportCharges } = await import('pacific-customs-kit');
+  const r = estimateLandedCost({ unitPriceUsd: 1, quantity: 1000, unitWeightKg: 0.1, origin: 'New Zealand', destination: 'FJ', category: 'packaging' });
+  assert.equal(r.local.currency, 'FJD');
+  assert.equal(r.distanceBand, 'near');
+  const [duty, excise, vat] = r.breakdownUsd.taxes;
+  assert.equal(vat.rate, 0.125);
+  assert.equal(vat.baseUsd, Math.round((r.breakdownUsd.cif + duty.amountUsd + excise.amountUsd) * 100) / 100, 'VAT on CIF + duty + excise');
+  const kit = computeImportCharges({ country: 'FJ', valueForDuty: r.breakdownUsd.cif, category: 'packaging' });
+  assert.ok(Math.abs(kit.totalCharges - (duty.amountUsd + excise.amountUsd + vat.amountUsd)) < 0.02, 'same result as the kit');
+  assert.ok(r.disclaimer, 'duty rates stay illustrative');
+});
+
+test('customs check (demo file) catches the old 15% VAT and the wrong port', async () => {
+  _resetStoreForTests();
+  const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'fj' });
+  const r = await runAgent(ctx, { text: 'Check my invoice for Suva' });
+  assert.equal(r.calls[0].name, 'check_customs_documents');
+  const d = r.calls[0].data;
+  assert.equal(d.ok, false);
+  const codes = d.errors.map((e) => e.code).sort();
+  assert.deepEqual(codes, ['port_mismatch', 'vat_discrepancy']);
+  assert.equal(d.charges.currency, 'FJD');
+  assert.equal(d.charges.lines.find((l) => l.code === 'vat').amount, 1414.02);
+  assert.match(r.reply, /1,414 FJD of VAT at 12.5 percent/);
+  const fr = await runAgent(ctx, { text: 'Vérifie ma facture' });
+  assert.equal(fr.calls[0].name, 'check_customs_documents');
+});
+
+test('customs check works on documents sent by an MCP client, and needs no paid plan', async () => {
+  process.env.MANALOG_ENFORCE_PLANS = 'true';
+  try {
+    const anon = resolveContext({});
+    const { demoDocuments } = await import('../data/demo-documents.js');
+    const good = structuredClone(demoDocuments['bula-bottles']);
+    good.billOfLading.portOfDischarge = 'FJSUV';
+    const r = await executeTool(anon, 'check_customs_documents', { invoice: good.invoice, billOfLading: good.billOfLading, fxRate: 2.25, fiscalDutyRate: 0.15, declared: { fiscalDuty: 1475.5, vat: 1414.02 } });
+    assert.equal(r.error, undefined);
+    assert.equal(r.data.ok, true);
+    assert.match(r.speech, /everything adds up/);
+  } finally { delete process.env.MANALOG_ENFORCE_PLANS; }
+});
+
+test('voice router sends Fiji requests to the FJ destination', async () => {
+  _resetStoreForTests();
+  const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'fj2' });
+  const r = await runAgent(ctx, { text: 'How much for 3000 glass bottles landed in Suva?' });
+  assert.equal(r.calls[0].name, 'estimate_landed_cost');
+  assert.equal(r.calls[0].args.destination, 'FJ');
+  assert.match(r.reply, /FJD/);
+});

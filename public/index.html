@@ -248,8 +248,8 @@ const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString(LOCALE(), { max
 const history = [];
 const compact = (n) => Number(n).toLocaleString(LOCALE(), { notation: 'compact', maximumFractionDigits: 1 });
 const CHIPS = {
-  'en-US': ['Find me 2000 glass bottles for my monoi', 'Compare the suppliers', 'Send it', 'Who buys vanilla in the US?', "What's new with my suppliers?", 'My plan'],
-  'fr-FR': ['Trouve-moi 2000 flacons pour mon monoï', 'Compare les fournisseurs', 'Envoie-la', 'Qui achète de la vanille aux États-Unis ?', 'Mon abonnement'],
+  'en-US': ['Find me 2000 glass bottles for my monoi', 'Compare the suppliers', 'Send it', 'Who buys vanilla in the US?', 'Check my invoice for Suva', "What's new with my suppliers?", 'My plan'],
+  'fr-FR': ['Trouve-moi 2000 flacons pour mon monoï', 'Compare les fournisseurs', 'Envoie-la', 'Qui achète de la vanille aux États-Unis ?', 'Vérifie ma facture pour Suva', 'Mon abonnement'],
 };
 function renderChips() { $('chips').innerHTML = CHIPS[$('lang').value].map((c) => `<button class="chip" type="button">${esc(c)}</button>`).join(''); }
 $('chips').addEventListener('click', (e) => { if (e.target.classList.contains('chip')) ask(e.target.textContent); });
@@ -333,6 +333,17 @@ function renderCard(c) {
       ${data.origins?.origins?.length ? `<p class="smeta">${esc(t('origins', { dest: data.input.destination, list: data.origins.origins.slice(0, 3).map((o) => `${o.country} ${o.share}%`).join(', '), period: data.origins.period }))}</p>` : ''}
       ${data.regulated ? `<p class="note">⚠ ${esc(T[LANG].regulated ?? data.regulated)}</p>` : ''}
       <p class="note">${esc(t('estimates'))}</p>`;
+  } else if (data.poweredBy && data.lodgement) {
+    const c = data.charges;
+    const row = (x, cls) => `<div class="srow"><div class="score" style="background:${cls === 'error' ? 'var(--coral)' : '#C8961E'}">${cls === 'error' ? '!' : '?'}</div><div><div class="sname">${esc(x.message)}</div><div class="smeta">${esc(x.field)}${x.expected != null ? ` · expected ${esc(x.expected)} · found ${esc(x.actual)}` : ''}</div></div><div></div></div>`;
+    el.innerHTML = `<div class="card-title">Customs check — ${esc(data.countryName)} ${data.ok ? '<span class="pill ok">all good</span>' : `<span class="pill no">${data.errors.length} problem${data.errors.length === 1 ? '' : 's'}</span>`}</div>
+      <div class="card-sub">Invoice ${esc(data.invoiceNumber)}${data.demo ? ' · demo file: ' + esc(data.demo) : ''}</div>
+      ${data.errors.map((x) => row(x, 'error')).join('')}${data.warnings.map((x) => row(x, 'warning')).join('')}
+      ${c ? `<table style="margin-top:12px"><tr><td>Value for duty (CIF)</td><td>${fmt(c.valueForDuty)} ${esc(c.currency)}</td></tr>
+        ${c.lines.map((l) => `<tr><td>${esc(l.name)} (${fmt(l.rate * 100)}%${l.rateSource === 'official' ? ', official' : l.rateSource === 'illustrative-default' ? ', illustrative' : ''})</td><td>${fmt(l.amount)} ${esc(c.currency)}</td></tr>`).join('')}
+        <tr class="total"><td>Expected charges</td><td>${fmt(c.totalCharges)} ${esc(c.currency)}</td></tr></table>` : ''}
+      ${(data.notes || []).map((n) => `<p class="note">${esc(n)}</p>`).join('')}
+      <p class="note">${esc(data.lodgement)} Computed with ${esc(data.poweredBy)}.</p>`;
   } else if (data.mailto) {
     el.innerHTML = `<div class="card-title">${esc(t('rfqOk'))}</div><div class="card-sub">${esc(t('rfqTo', { to: data.rfq.to }))}</div><pre class="rfq">${esc(data.rfq.text)}</pre><a class="btn" href="${esc(data.mailto)}">${esc(t('openMail'))}</a>`;
   } else if (data.buyers) {

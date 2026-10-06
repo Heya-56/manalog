@@ -55,6 +55,7 @@ flowchart LR
 
 - **One tool registry** (`src/mcp/tools.js`) serves both the MCP server (Alexa+) and the Bedrock voice agent, so what you see in the console is exactly what Alexa+ calls.
 - **Stateless transport, stateful product.** A fresh MCP server per request (Lambda-friendly, JSON responses), while user state (missions, watchlist, usage) lives in DynamoDB, keyed by `tenant + user`.
+- **Pacific customs check.** Fiji destination (FJD) and a `check_customs_documents` tool built on [pacific-customs-kit](https://github.com/Heya-56/pacific-customs-kit) (MIT): invoice and bill-of-lading checks, official FRCS VAT formula, alerts on discrepancies.
 - **Offline-first demo.** With no API keys, ManaLog runs on bundled fictional demo data and a deterministic intent router, so judges can test it in 30 seconds.
 
 ## Quick start (local, no keys needed)

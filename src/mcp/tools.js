@@ -12,9 +12,11 @@ import { scrapeSupplierSite } from '../core/scraper.js';
 import { watchSupplier, unwatchSupplier, checkWatchlist } from '../core/watchlist.js';
 import { usage } from '../core/tenants.js';
 import { config } from '../core/config.js';
+import { checkCustomsDocuments, speakCheck } from '../core/customs-check.js';
+import { demoDocuments, DEFAULT_DEMO_DOCUMENT } from '../../data/demo-documents.js';
 
-const dest = z.string().default('PF').describe('Destination profile code: PF (French Polynesia/Tahiti), US, FR');
-const place = (d) => (d === 'PF' ? 'Tahiti' : d);
+const dest = z.string().default('PF').describe('Destination profile code: PF (French Polynesia/Tahiti), FJ (Fiji), US, FR');
+const place = (d) => ({ PF: 'Tahiti', FJ: 'Fiji' }[d] ?? d);
 export const MISSION_CARD_URI = 'ui://manalog/mission-card.html';
 
 export const tools = [
@@ -70,7 +72,7 @@ export const tools = [
   },
   {
     name: 'estimate_landed_cost', title: 'Estimate landed cost', feature: 'landed_cost',
-    description: 'Estimate the true landed cost (goods + freight + insurance + duties/taxes + brokerage) of an order to the destination, in USD and local currency (XPF for Tahiti).',
+    description: 'Estimate the true landed cost (goods + freight + insurance + duties/taxes + brokerage) of an order to the destination, in USD and local currency (XPF for Tahiti, FJD for Fiji).',
     schema: {
       unitPriceUsd: z.number().positive(), quantity: z.number().int().positive(), unitWeightKg: z.number().positive().default(0.2),
       origin: z.string().describe('Origin country, e.g. "Vietnam"'), destination: dest,
@@ -81,7 +83,7 @@ export const tools = [
     async handler(ctx, a) {
       const r = estimateLandedCost(a, ctx.tenant.overrides ?? {});
       return {
-        speech: `${a.quantity} units from ${a.origin} by ${r.mode}: about ${r.local.total.toLocaleString('en-US')} ${r.local.currency} landed, ${Math.round(r.local.unit)} ${r.local.currency} per unit — ${r.landedMultiplier} times the factory price, around ${r.transitDays} days in transit. ${r.verifiedRates ? '' : 'Rates are estimates; confirm with your broker.'}`,
+        speech: `${a.quantity} units from ${a.origin} by ${r.mode}: about ${r.local.total.toLocaleString('en-US')} ${r.local.currency} landed, ${r.local.unit < 10 ? r.local.unit.toFixed(2) : Math.round(r.local.unit)} ${r.local.currency} per unit — ${r.landedMultiplier} times the factory price, around ${r.transitDays} days in transit. ${r.verifiedRates ? '' : 'Rates are estimates; confirm with your broker.'}`,
         data: r,
       };
     },
@@ -94,6 +96,25 @@ export const tools = [
     async handler(ctx, a) {
       const r = await searchShipments(a.query, { pageSize: a.pageSize });
       return { speech: `${r.total ?? r.shipments.length} shipment records match. Latest: ${r.shipments.slice(0, 2).map((s) => `${s.supplier} to ${s.importer}`).join('; ') || 'none'}.`, data: r };
+    },
+  },
+  {
+    name: 'check_customs_documents', title: 'Check customs documents', feature: 'landed_cost',
+    description: 'Check an import file for a Pacific destination (Fiji first): invoice arithmetic, HS codes, importer TIN, invoice vs bill of lading (port, consignee, weight), and the expected fiscal duty and VAT computed with the official FRCS formula (VAT 12.5%). Compares them with charges declared on a draft entry and flags discrepancies. Omit the documents to run the built-in demo file. Use for "check my invoice", "is this customs entry right", "verify the VAT".',
+    schema: {
+      invoice: z.record(z.string(), z.any()).optional().describe('Commercial invoice as JSON (documentType "commercial_invoice", seller, buyer, currency, lines[{description, hsCode, quantity, unitPrice, lineTotal}], freight, insurance, total)'),
+      billOfLading: z.record(z.string(), z.any()).optional().describe('Bill of lading as JSON (documentType "bill_of_lading", blNumber, shipper, consignee, portOfLoading, portOfDischarge as UN/LOCODE, grossWeightKg)'),
+      declared: z.object({ fiscalDuty: z.number().optional(), importExcise: z.number().optional(), vat: z.number().optional() }).optional().describe('Charges written on a draft entry, in the destination currency'),
+      country: z.enum(['FJ']).default('FJ'),
+      fxRate: z.number().positive().optional().describe('Destination currency per 1 unit of the invoice currency (weekly customs rate if known)'),
+      fiscalDutyRate: z.number().min(0).max(5).optional().describe('Exact tariff rate as a fraction (0.15 = 15%) if known'),
+    },
+    annotations: { readOnlyHint: true },
+    async handler(ctx, a) {
+      const demo = !a.invoice ? demoDocuments[DEFAULT_DEMO_DOCUMENT] : null;
+      const input = demo ? { ...demo, country: 'FJ' } : a;
+      const r = checkCustomsDocuments(input);
+      return { speech: (demo ? 'Using the demo file. ' : '') + speakCheck(r), data: { ...r, demo: demo ? demo.title : null } };
     },
   },
   {

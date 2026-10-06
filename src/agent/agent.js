@@ -11,8 +11,8 @@ const jsonSchema = (shape) => { const { $schema, ...s } = z.toJSONSchema(z.objec
 const toolSpecs = () => tools.map((t) => ({ toolSpec: { name: t.name, description: t.description, inputSchema: { json: jsonSchema(t.schema) } } }));
 
 const system = (brand) => `You are ${brand.voiceName}, a voice assistant (Alexa+ style) for small importers/exporters, built for island makers in French Polynesia.
-Rules: your reply is read aloud by a speech engine: plain text only, NO markdown (no asterisks, bullets, headings or emojis); speak in 1-3 short sentences; numbers rounded; say currency as XPF for Tahiti. Use tools for any factual answer.
-For open sourcing requests use start_sourcing_mission; if the user mentions a unit price (e.g. "about 40 cents each"), pass it as targetUnitPriceUsd. "Send it"/"approve" → approve_rfq. "Compare"/"last time" → get_mission. "Where does Tahiti buy X" → trade_flows. Pass the product in the user's own words: the server translates it into precise search terms.
+Rules: your reply is read aloud by a speech engine: plain text only, NO markdown (no asterisks, bullets, headings or emojis); speak in 1-3 short sentences; numbers rounded; say currency as XPF for Tahiti and FJD (Fiji dollars) for Fiji. Use tools for any factual answer.
+For open sourcing requests use start_sourcing_mission; if the user mentions a unit price (e.g. "about 40 cents each"), pass it as targetUnitPriceUsd. "Send it"/"approve" → approve_rfq. "Compare"/"last time" → get_mission. "Where does Tahiti buy X" → trade_flows. Fiji, Suva, Lautoka or Nadi → destination FJ. "Check my invoice", "verify the VAT", "is my customs entry right" → check_customs_documents (never compute taxes yourself; read the numbers from the tool). Pass the product in the user's own words: the server translates it into precise search terms.
 Never claim an email was sent: the user sends it from the card. Mention estimates are indicative. Reply in the user's language (French or English).`;
 // The console's language switch wins over language detection.
 const LANG_RULE = {
@@ -92,6 +92,8 @@ function smallTalk(kind, lang, history, keyless) {
   return pick + hint;
 }
 
+const destIn = (t) => (/\b(fiji|fidji|suva|lautoka|nadi)\b/.test(t) ? 'FJ' : /\b(us|usa|états-unis)\b/.test(t) ? 'US' : 'PF');
+
 async function routeOffline(ctx, raw, calls, { history = [], keyless = false, chosenLang } = {}) {
   const t = raw.toLowerCase();
   const call = async (name, args) => { const o = await executeTool(ctx, name, args); calls.push({ name, args, speech: o.speech, data: o.data }); return { reply: o.speech, calls, engine: 'offline-router' }; };
@@ -101,6 +103,7 @@ async function routeOffline(ctx, raw, calls, { history = [], keyless = false, ch
   if (/^\s*(bonjour|salut|hello|hi|hey|ia ora na|coucou|bonsoir)\b[\s!.,?]*(manalog)?[\s!.,?]*$/.test(t)) return say('greet');
   if (/^\s*(merci|thanks|thank you|mauruuru|super|parfait|ok|d'accord)\b/.test(t) && !productIn(t)) return say('thanks');
   if (/\b(aide|help|que sais-tu|what can you|qui es-tu|who are you|tu fais quoi|comment ça marche)\b/.test(t)) return say('help');
+  if (/\b(check|verify|vérifie|verifie|contrôle|controle)\b.*\b(invoice|facture|document|entry|déclaration|declaration|vat|tva|douane|customs)|\b(customs check|contrôle douanier)\b/.test(t)) return call('check_customs_documents', {});
   if (/send it|approve|envoie|valide|approuve/.test(t)) return call('approve_rfq', { decision: 'approved' });
   if (/compare|last time|dernière|derniere|mission/.test(t) && !/find|trouve|source/.test(t)) return call('get_mission', {});
   if (/what'?s new|watchlist|quoi de neuf|surveill/.test(t)) return call('check_watchlist', {});
@@ -108,11 +111,12 @@ async function routeOffline(ctx, raw, calls, { history = [], keyless = false, ch
   if (/https?:\/\//.test(raw)) return call('scrape_supplier_site', { url: raw.match(/https?:\/\/\S+/)[0] });
   if (/buy|buyer|acheteur|export|sell|vendre/.test(t)) return call('find_buyers', { product: productIn(t) ?? 'vanilla' });
   if (/landed|cost|coût|cout|combien/.test(t) && numberIn(t)) {
-    return call('estimate_landed_cost', { unitPriceUsd: 0.34, quantity: numberIn(t), origin: 'Vietnam', destination: 'PF', product: productIn(t) ?? 'glass bottle' });
+    const d = destIn(t);
+    return call('estimate_landed_cost', { unitPriceUsd: 0.34, quantity: numberIn(t), origin: d === 'FJ' ? 'China' : 'Vietnam', destination: d, product: productIn(t) ?? 'glass bottle' });
   }
   const p = productIn(t);
   const cents = t.match(/(\d+(?:[.,]\d+)?)\s*(cents?|centimes?)/); const usd = t.match(/\$\s?(\d+(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)\s?(?:usd|dollars?)/);
   const target = cents ? Number(cents[1].replace(',', '.')) / 100 : usd ? Number((usd[1] ?? usd[2]).replace(',', '.')) : undefined;
-  if (p) return call('start_sourcing_mission', { product: p, quantity: numberIn(t.replace(/(\d+(?:[.,]\d+)?)\s*(cents?|centimes?|usd|dollars?)|\$\s?\d+(?:[.,]\d+)?/g, '')) ?? 1000, ...(target ? { targetUnitPriceUsd: target } : {}), destination: /\b(us|usa|états-unis)\b/.test(t) ? 'US' : 'PF', language: fr ? 'fr' : 'en' });
+  if (p) return call('start_sourcing_mission', { product: p, quantity: numberIn(t.replace(/(\d+(?:[.,]\d+)?)\s*(cents?|centimes?|usd|dollars?)|\$\s?\d+(?:[.,]\d+)?/g, '')) ?? 1000, ...(target ? { targetUnitPriceUsd: target } : {}), destination: destIn(t), language: fr ? 'fr' : 'en' });
   return say('fallback');
 }

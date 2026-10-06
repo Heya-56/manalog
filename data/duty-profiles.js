@@ -3,6 +3,17 @@
 // HS code, origin, trade agreements and local rules — each white-label tenant overrides these with
 // rates confirmed by its customs broker (see docs/WHITE_LABEL.md). The estimator always says so.
 
+import { getProfile } from 'pacific-customs-kit';
+
+// Fiji comes from the open-source pacific-customs-kit (MIT): official VAT and FRCS valuation formula with sources.
+// FRCS: fiscal duty and import excise on CIF, then VAT on CIF + duty + excise — the same "compound" stacking used below.
+const fjKit = getProfile('FJ');
+const fjCategories = Object.fromEntries(Object.entries(fjKit.duty.categories).map(([cat, r]) => [cat, [
+  { name: 'Fiscal duty', rate: r.fiscalDuty },
+  { name: 'Import excise', rate: r.importExcise },
+  { name: `VAT (${fjKit.vat.rate * 100}%, official since ${fjKit.vat.effectiveFrom})`, rate: fjKit.vat.rate, compound: true },
+]]));
+
 export const dutyProfiles = {
   PF: {
     name: 'French Polynesia (Tahiti)', currency: 'XPF', fxPerUsd: 110, verified: false,
@@ -14,6 +25,13 @@ export const dutyProfiles = {
       craft_materials:  [{ name: 'Customs duty', rate: 0.05 }, { name: 'Local development tax', rate: 0.05 }, { name: 'VAT (import)', rate: 0.16, compound: true }],
       general:          [{ name: 'Customs duty', rate: 0.10 }, { name: 'Local development tax', rate: 0.10 }, { name: 'VAT (import)', rate: 0.16, compound: true }],
     },
+  },
+  FJ: {
+    name: 'Fiji', currency: 'FJD', fxPerUsd: fjKit.fx.indicativeFjdPerUsd, verified: false,
+    notes: `VAT ${fjKit.vat.rate * 100}% is official (FRCS). Fiscal duty and excise are illustrative until the exact tariff line is confirmed; FRCS converts at the weekly ASYCUDA exchange rate. Entries are lodged in ASYCUDA World by the importer or a customs agent.`,
+    sources: { vat: fjKit.vat.source, valuation: fjKit.valuation.source },
+    ports: fjKit.offices,
+    categories: fjCategories,
   },
   US: {
     name: 'United States', currency: 'USD', fxPerUsd: 1, verified: false,
@@ -49,6 +67,7 @@ export const freightRates = {
 // Rough distance bands from each origin country to each destination (island logistics!).
 const regions = {
   PF: { near: ['New Zealand', 'Fiji', 'Cook Islands', 'Samoa', 'Tonga', 'New Caledonia'], mid: ['Australia', 'United States', 'Chile', 'Papua New Guinea', 'Philippines', 'Indonesia', 'Japan'] },
+  FJ: { near: ['New Zealand', 'Australia', 'New Caledonia', 'Samoa', 'Tonga', 'Vanuatu', 'Tuvalu', 'French Polynesia'], mid: ['China', 'Hong Kong', 'United States', 'Japan', 'Singapore', 'Malaysia', 'Thailand', 'Philippines', 'Indonesia', 'India', 'Papua New Guinea'] },
   US: { near: ['Mexico', 'Canada'], mid: ['China', 'Vietnam', 'Japan', 'Philippines', 'Indonesia', 'French Polynesia', 'Fiji', 'New Zealand', 'Australia', 'Papua New Guinea', 'Colombia'] },
   FR: { near: ['Portugal', 'Spain', 'Italy', 'Germany', 'Belgium'], mid: ['Morocco', 'Tunisia', 'Turkey', 'India', 'Madagascar'] },
 };

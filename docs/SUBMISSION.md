@@ -17,12 +17,18 @@ In French Polynesia, a monoï maker who needs 2,000 glass bottles has no purchas
 ManaLog gives Alexa+ an agentic import/export workflow through 13 MCP tools:
 - **Sourcing missions:** one sentence triggers the full chain. It finds suppliers that have *actually shipped* the product (US customs bills of lading via ImportYeti), enriches and scores them 0–100 with reasons you can hear, estimates the **landed cost to the destination** (freight, insurance, stacked duties and taxes, brokerage, in USD and XPF), filters by budget, shortlists three and drafts an RFQ email with Amazon Bedrock.
 - **Island products, not just container cargo:** the request is turned into precise English search terms and HS codes (Bedrock), so "fournitures de tatouage" or "coquillages" work. When US customs data is thin, ManaLog adds manufacturers found on the web (homepages read for contacts) and small-lot AliExpress offers with real prices, and weights the scores with official UN Comtrade statistics on where Tahiti actually imports each product from. Every supplier says where it came from.
+- **Pacific customs check (Fiji first):** "check my invoice for Suva" verifies the invoice arithmetic, HS codes, importer TIN and the bill of lading (port, consignee, weight), then recomputes fiscal duty and VAT with the official FRCS formula (VAT 12.5% since 1 August 2025) and flags a draft entry still using the old 15% rate. The math is deterministic, in integer cents, from our new open-source library **pacific-customs-kit** (MIT); the LLM never computes a tax.
 - **State across sessions:** "compare them", "what did you find last time", "what's new with my suppliers" (DynamoDB).
 - **Human-in-the-loop:** "send it" approves the RFQ and returns a one-tap email. Nothing reaches a supplier without approval.
 - **Export prospecting:** "who buys vanilla in the US?" lists US importers of your product.
 - **Supplier website reading:** robots.txt-aware, SSRF-hardened; Bedrock turns the page into a supplier card.
 - **Screen cards:** an MCP App (`text/html;profile=mcp-app`) renders the shortlist on screen devices.
 - **White-label:** one deployment serves many brands with their own names, voice personas, colors, verified tax rates, quotas and metering.
+
+## Open Source contribution
+- New repository created during the hackathon: https://github.com/Heya-56/pacific-customs-kit (MIT, GitHub user Heya-56)
+- What: country customs profiles for Pacific Island states (Fiji first, every figure with an official source and a verified flag), strict zod schemas for commercial invoices and bills of lading, deterministic import-charge math in integer cents (FRCS formula: duty and excise on CIF, VAT on CIF + duty + excise) and discrepancy checks, with tests.
+- Why it matters: Pacific importers and brokers work from scanned paperwork and island-specific tax rules; the kit lets any developer (or AI agent) validate trade documents without letting a model invent tax figures. ManaLog consumes it as a dependency.
 
 ## How we built it
 Node 22 on **AWS Lambda** (Function URL, arm64) using the official MCP TypeScript SDK's web-standard Streamable HTTP transport in stateless JSON mode, **DynamoDB** single-table storage, and **Amazon Bedrock** (Converse API with tool use) for the voice agent, RFQ drafting and page extraction. A single tool registry feeds both the MCP server and the Bedrock agent, so the console shows exactly what Alexa+ calls. Deployed with **AWS SAM**. Tested with `node:test` (11 tests) and an end-to-end run with the official MCP SDK client.
