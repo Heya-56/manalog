@@ -21,15 +21,22 @@
 - **Suggestion:** Publish an Alexa+ MCP reference on Lambda (SAM template plus notes on sessions and streaming).
 
 ## 3. Registering a self-hosted MCP server with Alexa+
-- **Task:** Connect the deployed `/mcp` endpoint to a real Alexa+ device.
-- **Steps:** *(to complete during deployment: note which console or page you used, the auth options offered, and any region limits)*
-- **Expected / Actual / Severity / Workaround / Suggestion:** *(fill in)*
+- **Task:** Connect the deployed `/mcp` endpoint to a real Alexa+ device and test it end to end.
+- **Steps:** Deployed the server to a Lambda Function URL (us-west-2), then looked for a way to register a self-hosted MCP server with Alexa+ from our account in French Polynesia.
+- **Expected:** A developer console page or simulator where a builder can paste an MCP endpoint and an auth header, then talk to it on an Echo device or a test simulator.
+- **Actual:** We did not find a self-service path to attach our endpoint to an Alexa+ device from our account and region, so we could not run a real-device test before the deadline.
+- **Severity:** High (it blocks testing on the target platform)
+- **Workaround:** Followed the path the rules allow: (1) the official MCP SDK client (`npm run e2e`, run from AWS CloudShell) initializes, lists the 14 tools and calls them on the live Lambda endpoint with protocol 2025-11-25; (2) a browser voice console simulates the Alexa+ experience (Web Speech API + Bedrock agent) against the same tools. Both were tested repeatedly in voice mode and worked.
+- **Suggestion:** Publish a step-by-step "bring your own MCP server to Alexa+" guide, with an Alexa+ simulator that accepts an MCP URL and API key, usable from any region.
 
-## 4. Alexa+ availability outside the US (French Polynesia / France)
-- **Task:** Test with the target users (artisans in Tahiti).
-- **Steps:** *(to complete: check device and account availability for your region)*
-- **Workaround:** The browser voice console simulates the Alexa+ experience against the same MCP tools (a path the rules allow).
-- **Suggestion:** Document a test path (simulator or dev account) for builders outside Alexa+ launch regions.
+## 4. Alexa+ access for builders and users outside the US (French Polynesia, Fiji)
+- **Task:** Test with the people the product is for: small importers in Tahiti and Fiji.
+- **Steps:** Looked for Alexa+ device and account options for our region and for a developer test path that does not depend on the device's country.
+- **Expected:** A developer or beta path to test Alexa+ features regardless of where the builder lives.
+- **Actual:** We found no such path for our region; our target users cannot try ManaLog through Alexa+ today.
+- **Severity:** Medium
+- **Workaround:** The browser voice console runs the same MCP tools in English and French, so Pacific users can test the experience now; the MCP endpoint is ready for Alexa+ when it is available to them.
+- **Suggestion:** Document regional availability for builders and offer a region-independent test path (simulator or developer account).
 
 ## 5. Bedrock model access
 - **Task:** Enable Claude on Bedrock for the agent loop.

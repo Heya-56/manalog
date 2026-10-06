@@ -25,7 +25,7 @@ Status: ✅ done · 🟡 needs the owner · ⬜ to do
 - ✅ Open Source: contribution URL (pacific-customs-kit, new MIT repo), project repo URL, GitHub username, what / how / why
 - 🟡 Product feedback: draft written, owner to review and adjust to her own experience
 - ✅ Feature requests (optional) with priority
-- 🟡 Friction log (up to 10% bonus): entries 3 (Alexa+ registration) and 4 (Alexa+ outside the US) still need the owner's real experience
+- ✅ Friction log (up to 10% bonus): 11 complete entries
 
 ## Demo video
 - ⬜ Under 3 minutes, in English (script: docs/VIDEO_SCRIPT.md)
