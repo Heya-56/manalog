@@ -103,7 +103,21 @@ export async function runMission(ctx, input) {
 
   const cur = top.landed?.local;
   const c = found.counts;
-  const checked = found.source === 'live' && (c.web || c.aliexpress)
+  const multi = found.source === 'live' && (c.web || c.aliexpress);
+  const place = destination === 'PF' ? 'Tahiti' : destination;
+  if (language === 'fr') {
+    const checkedFr = multi
+      ? `${scored.length} fournisseurs de ${found.product} : ${c.customs} exportateurs prouvés par les douanes américaines, ${c.web ?? 0} trouvés sur le web et ${c.aliexpress ?? 0} offres AliExpress`
+      : `${scored.length} exportateurs prouvés de ${found.product}`;
+    mission.speech = `C'est fait. J'ai examiné ${checkedFr}. ` +
+      `Meilleur choix : ${top.name}${top.country ? `, ${top.country}` : ''}, score ${top.score} sur 100` +
+      (cur ? `, environ ${Math.round(cur.unit)} ${cur.currency} l'unité rendue à ${place}` : '') +
+      (top.source === 'aliexpress' ? '. Il se commande en ligne, en petite quantité' : '') +
+      `. J'ai préparé une demande de devis. Dites « envoie-la » pour l'approuver, ou « compare » pour entendre les deux autres. Les coûts sont des estimations.` +
+      (found.plan?.regulated ? ` Attention, produit réglementé : vérifiez les règles d'importation avant de commander.` : '');
+    return mission;
+  }
+  const checked = multi
     ? `${scored.length} suppliers of ${found.product}: ${c.customs} proven exporters from US customs, ${c.web ?? 0} from the web and ${c.aliexpress ?? 0} AliExpress offers`
     : `${scored.length} proven exporters of ${found.product}`;
   mission.speech = `Done. I checked ${checked}. ` +

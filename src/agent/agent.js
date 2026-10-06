@@ -14,11 +14,17 @@ const system = (brand) => `You are ${brand.voiceName}, a voice assistant (Alexa+
 Rules: your reply is read aloud by a speech engine: plain text only, NO markdown (no asterisks, bullets, headings or emojis); speak in 1-3 short sentences; numbers rounded; say currency as XPF for Tahiti. Use tools for any factual answer.
 For open sourcing requests use start_sourcing_mission; if the user mentions a unit price (e.g. "about 40 cents each"), pass it as targetUnitPriceUsd. "Send it"/"approve" → approve_rfq. "Compare"/"last time" → get_mission. "Where does Tahiti buy X" → trade_flows. Pass the product in the user's own words: the server translates it into precise search terms.
 Never claim an email was sent: the user sends it from the card. Mention estimates are indicative. Reply in the user's language (French or English).`;
+// The console's language switch wins over language detection.
+const LANG_RULE = {
+  fr: '\nThe user chose French: always reply in French, and pass language "fr" to start_sourcing_mission.',
+  en: '\nThe user chose English: always reply in English.',
+};
 
-export async function runAgent(ctx, { text, history = [] }) {
+export async function runAgent(ctx, { text, history = [], lang }) {
   const calls = [];
+  lang = ['fr', 'en'].includes(lang) ? lang : undefined;
   // Bedrock (paid LLM calls) only for tenants whose plan includes agentic missions; others get the free router.
-  if (!bedrockEnabled() || !hasFeature(ctx, 'mission')) return routeOffline(ctx, text, calls, { history, keyless: bedrockEnabled() });
+  if (!bedrockEnabled() || !hasFeature(ctx, 'mission')) return routeOffline(ctx, text, calls, { history, keyless: bedrockEnabled(), chosenLang: lang });
 
   const messages = [
     ...history.slice(-6).filter((h) => h.text).map((h) => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: [{ text: h.text }] })),
@@ -27,7 +33,7 @@ export async function runAgent(ctx, { text, history = [] }) {
   // Bedrock requires alternating roles starting with user
   while (messages.length && messages[0].role !== 'user') messages.shift();
   for (let i = 0; i < 6; i++) {
-    const r = await converse({ system: system(ctx.tenant.brand), messages, tools: toolSpecs() });
+    const r = await converse({ system: system(ctx.tenant.brand) + (lang ? LANG_RULE[lang] : ''), messages, tools: toolSpecs() });
     const msg = r.output?.message;
     messages.push(msg);
     const uses = (msg?.content ?? []).filter((b) => b.toolUse);
@@ -36,6 +42,7 @@ export async function runAgent(ctx, { text, history = [] }) {
     }
     const results = [];
     for (const { toolUse } of uses) {
+      if (lang && toolUse.name === 'start_sourcing_mission') toolUse.input = { ...toolUse.input, language: lang };
       const out = await executeTool(ctx, toolUse.name, toolUse.input ?? {});
       calls.push({ name: toolUse.name, args: toolUse.input, speech: out.speech, data: out.data });
       results.push({ toolResult: { toolUseId: toolUse.toolUseId, status: out.error ? 'error' : 'success', content: [{ json: { speech: out.speech, data: trim(out.data) } }] } });
@@ -85,10 +92,10 @@ function smallTalk(kind, lang, history, keyless) {
   return pick + hint;
 }
 
-async function routeOffline(ctx, raw, calls, { history = [], keyless = false } = {}) {
+async function routeOffline(ctx, raw, calls, { history = [], keyless = false, chosenLang } = {}) {
   const t = raw.toLowerCase();
   const call = async (name, args) => { const o = await executeTool(ctx, name, args); calls.push({ name, args, speech: o.speech, data: o.data }); return { reply: o.speech, calls, engine: 'offline-router' }; };
-  const fr = /\b(trouve|cherche|combien|mes|fournisseur|acheteur|envoie|compare|bonjour|salut|merci|qui|quoi|comment|pourquoi|je|tu|vous|est|pour|mon|ma|aide)\b|[éèêàùçôî]|ia ora na|mauruuru/.test(t);
+  const fr = chosenLang ? chosenLang === 'fr' : /\b(trouve|cherche|combien|mes|fournisseur|acheteur|envoie|compare|bonjour|salut|merci|qui|quoi|comment|pourquoi|je|tu|vous|est|pour|mon|ma|aide)\b|[éèêàùçôî]|ia ora na|mauruuru/.test(t);
   const lang = fr ? 'fr' : 'en';
   const say = (kind) => ({ reply: smallTalk(kind, lang, history, keyless), calls, engine: 'offline-router' });
   if (/^\s*(bonjour|salut|hello|hi|hey|ia ora na|coucou|bonsoir)\b[\s!.,?]*(manalog)?[\s!.,?]*$/.test(t)) return say('greet');

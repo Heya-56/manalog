@@ -132,6 +132,18 @@ test('offline router: French small talk, no word-for-word repetition', async () 
   assert.match(who.reply, /fournisseurs|Essayez/, 'French question gets a French answer');
 });
 
+test('language switch: the chosen language wins over detection', async () => {
+  _resetStoreForTests();
+  const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'lang' });
+  const fr = await runAgent(ctx, { text: 'hello', lang: 'fr' });
+  assert.match(fr.reply, /Bonjour|Ia ora na/);
+  const mission = await runAgent(ctx, { text: 'Find me 2000 glass bottles for my monoi', lang: 'fr' });
+  assert.equal(mission.calls[0].args.language, 'fr', 'RFQ drafted in French');
+  assert.match(mission.reply, /^C'est fait\. J'ai examiné/);
+  const en = await runAgent(ctx, { text: 'bonjour', lang: 'en' });
+  assert.match(en.reply, /^(Hi|Hello)/);
+});
+
 test('Lambda handler speaks MCP 2025-11-25 (initialize + tools/list)', async () => {
   const post = (body) => handler({
     rawPath: '/mcp', rawQueryString: '', requestContext: { http: { method: 'POST' } },

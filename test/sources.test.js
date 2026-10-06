@@ -98,8 +98,8 @@ test('full mission on web + AliExpress leads: landed cost from the offer price, 
     const ctx = resolveContext({ apiKey: 'demo-judges-2026', userHint: 'tattoo' });
     const r = await executeTool(ctx, 'start_sourcing_mission', { product: 'aiguilles de tatouage', quantity: 20, language: 'fr' });
     assert.ok(!r.error, r.speech);
-    assert.match(r.speech, /0 proven exporters from US customs, 2 from the web and 2 AliExpress offers/);
-    assert.match(r.speech, /Note: Tattoo inks are regulated/);
+    assert.match(r.speech, /0 exportateurs prouvés par les douanes américaines, 2 trouvés sur le web et 2 offres AliExpress/);
+    assert.match(r.speech, /produit réglementé/);
     const ali = r.data.shortlist.find((s) => s.source === 'aliexpress');
     assert.ok(ali?.localUnit, 'AliExpress offers carry a real price, so a landed cost');
     assert.equal(ali.offer, '100pcs tattoo cartridge needles');

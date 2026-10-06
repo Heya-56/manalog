@@ -67,7 +67,7 @@ export async function handle(req) {
     try { body = await req.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
     if (!body?.text || typeof body.text !== 'string' || body.text.length > 1000) return json({ error: 'text (1-1000 chars) required' }, 400);
     try {
-      const r = await runAgent(ctx, { text: body.text, history: Array.isArray(body.history) ? body.history : [] });
+      const r = await runAgent(ctx, { text: body.text, history: Array.isArray(body.history) ? body.history : [], lang: body.lang });
       return json({ ...r, brand: ctx.tenant.brand });
     } catch (e) {
       console.error(e);

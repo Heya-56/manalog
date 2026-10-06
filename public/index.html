@@ -22,10 +22,13 @@
   header h1 { font-size: 16px; margin: 0; }
   header .tag { color: var(--muted); font-size: 12px; }
   header .spacer { flex: 1; }
+  .langsw { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+  .langsw button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; padding: 5px 11px; cursor: pointer; }
+  .langsw button[aria-pressed="true"] { background: var(--brand); color: #fff; }
   .pill { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--chip); color: var(--muted); white-space: nowrap; }
   .pill.on { background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--brand); }
   main { display: grid; grid-template-columns: minmax(320px, 440px) 1fr; gap: 20px; padding: 20px; max-width: 1280px; margin: 0 auto; }
-  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 16px; } header { padding: 12px 16px; } header .tag { display: none; } }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 16px; } header { padding: 12px 16px; flex-wrap: wrap; } header .tag { display: none; } }
 
   .device { background: var(--device); color: var(--device-ink); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; min-height: 620px; box-shadow: 0 18px 40px rgba(0,0,0,.18); }
   .ring-wrap { display: grid; place-items: center; padding: 10px 0 14px; }
@@ -108,68 +111,170 @@
 <body>
 <header>
   <div class="logo" id="logo">M</div>
-  <div><h1 id="brandName">ManaLog</h1><div class="tag" id="brandTag">Voice sourcing for island makers</div></div>
+  <div><h1 id="brandName">ManaLog</h1><div class="tag" id="brandTag" data-i18n="tagline">Voice sourcing for island makers</div></div>
   <div class="spacer"></div>
+  <div class="langsw" role="group" aria-label="Language / Langue"><button type="button" id="lgEn" lang="en" aria-pressed="true">EN</button><button type="button" id="lgFr" lang="fr" aria-pressed="false">FR</button></div>
   <span class="pill" id="engine">engine: –</span>
   <span class="pill" id="data">data: –</span>
 </header>
 
 <main>
   <section class="device" aria-label="Voice assistant simulation">
-    <div class="ring-wrap"><div class="ring" id="ring"></div><div class="state" id="state">Tap the mic or type</div></div>
+    <div class="ring-wrap"><div class="ring" id="ring"></div><div class="state" id="state" data-i18n="idle">Tap the mic or type</div></div>
     <div class="log" id="log" aria-live="polite"></div>
     <div class="chips" id="chips"></div>
     <form id="f">
-      <button type="button" class="mic" id="mic" aria-label="Speak">
+      <button type="button" class="mic" id="mic" aria-label="Speak" data-i18n-aria="speak">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>
       </button>
-      <input type="text" id="q" placeholder="Find me 2000 glass bottles for my monoi…" autocomplete="off">
+      <input type="text" id="q" placeholder="Find me 2000 glass bottles for my monoi…" data-i18n-ph="qPh" autocomplete="off">
     </form>
     <details class="settings">
-      <summary>Settings</summary>
-      <label>API key <input id="key" value="" placeholder="Judges' key (Devpost testing instructions)"></label>
-      <label>User id (memory across sessions) <input id="user" value="heya"></label>
-      <label>Voice language
+      <summary data-i18n="settings">Settings</summary>
+      <label><span data-i18n="apiKey">API key</span> <input id="key" value="" placeholder="Judges' key (Devpost testing instructions)" data-i18n-ph="keyPh"></label>
+      <label><span data-i18n="userId">User id (memory across sessions)</span> <input id="user" value="heya"></label>
+      <label><span data-i18n="voiceLang">Voice language</span>
         <select id="lang"><option value="en-US">English (US)</option><option value="fr-FR">Français</option></select>
       </label>
-      <label>Server <input id="endpoint" placeholder="same origin"></label>
+      <label><span data-i18n="server">Server</span> <input id="endpoint" placeholder="same origin" data-i18n-ph="serverPh"></label>
     </details>
   </section>
 
   <div class="col">
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" id="tabLive" aria-selected="true">Live</button>
-      <button class="tab" role="tab" id="tabDash" aria-selected="false">Dashboard</button>
+      <button class="tab" role="tab" id="tabLive" aria-selected="true" data-i18n="tabLive">Live</button>
+      <button class="tab" role="tab" id="tabDash" aria-selected="false" data-i18n="tabDash">Dashboard</button>
     </div>
     <div class="col" id="viewDash" hidden>
       <div class="kpis" id="kpis"></div>
-      <section class="panel"><h2>What shipping & taxes add — landed cost ÷ purchase price</h2><div class="chart" id="chart"><p class="empty">No missions yet.</p></div></section>
-      <section class="panel"><h2>Mission history</h2><div id="history"><p class="empty">Your sourcing missions are saved here, across sessions and devices.</p></div></section>
-      <section class="panel"><h2>Watched suppliers</h2><div id="watch"><p class="empty">Say “watch this supplier” to follow its shipments.</p></div></section>
-      <p class="note">Opening the dashboard reads your saved data only — it uses no ImportYeti credits and no AI calls. Landed costs are indicative estimates.</p>
+      <section class="panel"><h2 data-i18n="chartH">What shipping & taxes add — landed cost ÷ purchase price</h2><div class="chart" id="chart"><p class="empty" data-i18n="noMissions">No missions yet.</p></div></section>
+      <section class="panel"><h2 data-i18n="historyH">Mission history</h2><div id="history"><p class="empty" data-i18n="historyEmpty">Your sourcing missions are saved here, across sessions and devices.</p></div></section>
+      <section class="panel"><h2 data-i18n="watchH">Watched suppliers</h2><div id="watch"><p class="empty" data-i18n="watchEmpty">Say “watch this supplier” to follow its shipments.</p></div></section>
+      <p class="note" data-i18n="dashNote">Opening the dashboard reads your saved data only — it uses no ImportYeti credits and no AI calls. Landed costs are indicative estimates.</p>
     </div>
     <div class="col" id="viewLive">
-    <section class="panel"><h2>Card</h2><div id="card"><p class="empty">Results appear here — the same cards an Alexa+ screen device would show.</p></div></section>
-    <section class="panel"><h2>Agent trace — MCP tool calls</h2><div class="trace" id="trace"><p class="empty">Each tool the agent calls on the ManaLog MCP server is logged here.</p></div></section>
+    <section class="panel"><h2 data-i18n="cardH">Card</h2><div id="card"><p class="empty" data-i18n="cardEmpty">Results appear here — the same cards an Alexa+ screen device would show.</p></div></section>
+    <section class="panel"><h2 data-i18n="traceH">Agent trace — MCP tool calls</h2><div class="trace" id="trace"><p class="empty" data-i18n="traceEmpty">Each tool the agent calls on the ManaLog MCP server is logged here.</p></div></section>
     </div>
   </div>
 </main>
-<footer>ManaLog is open source (AGPL-3.0) — <a href="https://github.com/Heya-56/manalog">source code</a> · Alexa+ experience simulated in the browser; the same tools are served to Alexa+ via the MCP endpoint <code>/mcp</code>.</footer>
+<footer data-i18n-html="footer">ManaLog is open source (AGPL-3.0) — <a href="https://github.com/Heya-56/manalog">source code</a> · Alexa+ experience simulated in the browser; the same tools are served to Alexa+ via the MCP endpoint <code>/mcp</code>.</footer>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }));
+// ---------- Language (EN / FR) ----------
+const T = {
+  en: {
+    tagline: 'Voice sourcing for island makers', idle: 'Tap the mic or type', thinking: 'Thinking…', listening: 'Listening…', speaking: 'Speaking',
+    noVoice: 'Voice input not supported here — type instead', speak: 'Speak', qPh: 'Find me 2000 glass bottles for my monoi…',
+    settings: 'Settings', apiKey: 'API key', keyPh: "Judges' key (Devpost testing instructions)", userId: 'User id (memory across sessions)',
+    voiceLang: 'Voice language', server: 'Server', serverPh: 'same origin', tabLive: 'Live', tabDash: 'Dashboard',
+    chartH: 'What shipping & taxes add — landed cost ÷ purchase price', noMissions: 'No missions yet.', historyH: 'Mission history',
+    historyEmpty: 'Your sourcing missions are saved here, across sessions and devices.', watchH: 'Watched suppliers',
+    watchEmpty: 'Say “watch this supplier” to follow its shipments.',
+    dashNote: 'Opening the dashboard reads your saved data only — it uses no ImportYeti credits and no AI calls. Landed costs are indicative estimates.',
+    cardH: 'Card', cardEmpty: 'Results appear here — the same cards an Alexa+ screen device would show.',
+    traceH: 'Agent trace — MCP tool calls', traceEmpty: 'Each tool the agent calls on the ManaLog MCP server is logged here.',
+    footer: 'ManaLog is open source (AGPL-3.0) — <a href="https://github.com/Heya-56/manalog">source code</a> · Alexa+ experience simulated in the browser; the same tools are served to Alexa+ via the MCP endpoint <code>/mcp</code>.',
+    engine: 'engine', data: 'data', offline: 'offline router', noKey: '(no key)', error: 'Error',
+    missionSub: 'Mission {id} · {status} · {source} data', src_customs: 'US customs', src_web: 'web', src_aliexpress: 'AliExpress', days: 'days',
+    why: 'Why this score', perUnit: 'per unit landed', atTarget: ' · at your target price', onRequest: 'price on request', rfqDraft: 'RFQ draft',
+    steps: 'Agent steps', origins: '{dest} imports this mostly from {list} (UN Comtrade {period})',
+    estimates: 'Landed costs are estimates — confirm HS codes and rates with a licensed customs broker.',
+    rfqOk: 'RFQ approved ✓', rfqTo: 'To {to} — nothing is sent without you.', openMail: 'Open in my email',
+    buyersT: 'US buyers of {p}', buyersSub: '{source} data · export prospects', sourcesFrom: 'sources from', ship12: 'shipments / 12 mo',
+    suppliersT: 'Suppliers of {p}', dataSrc: '{source} data', recentOrders: 'recent orders', shipments: 'shipments', fobUnit: 'FOB unit',
+    landedT: 'Landed cost → {d}', landedSub: '{q} units · {mode} · ~{days} days · category {cat}', goods: 'Goods', freight: 'Freight',
+    insurance: 'Insurance', broker: 'Broker & handling', total: 'Total', perUnitRow: 'Per unit',
+    planT: '{brand} — {plan} plan', planSub: '{calls} / {limit} calls this month · data {mode}', features: 'Features', destinations: 'Destinations',
+    plans: 'White-label & plans', watchlist: 'Watchlist', noChange: 'no change', empty: 'Empty', emails: 'Emails', phones: 'Phones',
+    dashErr: 'Dashboard unavailable: ', kMissions: 'sourcing missions', kValue: 'est. landed value of best offers', kMult: 'avg. landed multiplier',
+    kRfq: 'quote requests approved', usage: '{plan} plan · {calls} of {limit} calls used in {month} · {w} supplier(s) watched',
+    thDate: 'Date', thProduct: 'Product', thBest: 'Best supplier', thScore: 'Score', thLanded: 'Landed / unit', thQuote: 'Quote',
+    openCard: "Open this mission's card", historyNone: 'No missions yet. Try: “Find me 2000 glass bottles for my monoi”.', since: 'since',
+    chartEmpty: 'No landed costs yet — run a mission, or give a target price (“at about 40 cents each”).',
+    chartTip: '{p} · {s} · {u} {c} per unit landed (×{m} the purchase price)', chartAria: 'Best landed unit cost per mission',
+    chartNote: '×2 means the product costs twice its purchase price once delivered (freight, insurance, duties, VAT, broker). Indicative rates.',
+  },
+  fr: {
+    tagline: 'Le sourcing à la voix pour les artisans des îles', idle: 'Touchez le micro ou écrivez', thinking: 'Je réfléchis…', listening: 'J’écoute…', speaking: 'Je parle',
+    noVoice: 'Saisie vocale non disponible ici — écrivez plutôt', speak: 'Parler', qPh: 'Trouve-moi 2000 flacons pour mon monoï…',
+    settings: 'Réglages', apiKey: 'Clé API', keyPh: 'Clé jury (instructions de test Devpost)', userId: 'Identifiant (mémoire entre les sessions)',
+    voiceLang: 'Langue de la voix', server: 'Serveur', serverPh: 'même origine', tabLive: 'En direct', tabDash: 'Tableau de bord',
+    chartH: 'Ce qu’ajoutent transport et taxes — coût rendu ÷ prix d’achat', noMissions: 'Pas encore de mission.', historyH: 'Historique des missions',
+    historyEmpty: 'Vos missions de sourcing sont enregistrées ici, d’une session et d’un appareil à l’autre.', watchH: 'Fournisseurs suivis',
+    watchEmpty: 'Dites « surveille ce fournisseur » pour suivre ses expéditions.',
+    dashNote: 'Le tableau de bord lit seulement vos données enregistrées — aucun crédit ImportYeti ni appel IA. Les coûts rendus sont des estimations indicatives.',
+    cardH: 'Fiche', cardEmpty: 'Les résultats s’affichent ici — les mêmes fiches qu’un appareil Alexa+ à écran.',
+    traceH: 'Trace de l’agent — appels d’outils MCP', traceEmpty: 'Chaque outil appelé par l’agent sur le serveur MCP ManaLog apparaît ici.',
+    footer: 'ManaLog est open source (AGPL-3.0) — <a href="https://github.com/Heya-56/manalog">code source</a> · Expérience Alexa+ simulée dans le navigateur ; les mêmes outils sont servis à Alexa+ via le point d’accès MCP <code>/mcp</code>.',
+    engine: 'moteur', data: 'données', offline: 'routeur hors ligne', noKey: '(sans clé)', error: 'Erreur',
+    missionSub: 'Mission {id} · {status} · données {source}', src_customs: 'douanes US', src_web: 'web', src_aliexpress: 'AliExpress', days: 'jours',
+    why: 'Pourquoi ce score', perUnit: 'l’unité, rendue', atTarget: ' · à votre prix cible', onRequest: 'prix sur demande', rfqDraft: 'Brouillon de devis',
+    steps: 'Étapes de l’agent', origins: '{dest} importe surtout ce produit de : {list} (UN Comtrade {period})',
+    estimates: 'Les coûts rendus sont des estimations — confirmez codes SH et taux avec un transitaire agréé.',
+    regulated: 'Produit réglementé : vérifiez les règles d’importation avant de commander.',
+    rfqOk: 'Demande de devis approuvée ✓', rfqTo: 'À {to} — rien n’est envoyé sans vous.', openMail: 'Ouvrir dans ma messagerie',
+    buyersT: 'Acheteurs américains de {p}', buyersSub: 'données {source} · prospects export', sourcesFrom: 's’approvisionne en', ship12: 'expéditions / 12 mois',
+    suppliersT: 'Fournisseurs de {p}', dataSrc: 'données {source}', recentOrders: 'commandes récentes', shipments: 'expéditions', fobUnit: 'FOB unitaire',
+    landedT: 'Coût rendu → {d}', landedSub: '{q} unités · {mode} · ~{days} jours · catégorie {cat}', goods: 'Marchandises', freight: 'Fret',
+    insurance: 'Assurance', broker: 'Transitaire et manutention', total: 'Total', perUnitRow: 'Par unité',
+    planT: '{brand} — formule {plan}', planSub: '{calls} / {limit} appels ce mois-ci · données {mode}', features: 'Fonctions', destinations: 'Destinations',
+    plans: 'Marque blanche et formules', watchlist: 'Liste de suivi', noChange: 'aucun changement', empty: 'Vide', emails: 'Emails', phones: 'Téléphones',
+    dashErr: 'Tableau de bord indisponible : ', kMissions: 'missions de sourcing', kValue: 'valeur rendue estimée des meilleures offres', kMult: 'multiplicateur moyen du coût rendu',
+    kRfq: 'demandes de devis approuvées', usage: 'Formule {plan} · {calls} sur {limit} appels utilisés en {month} · {w} fournisseur(s) suivi(s)',
+    thDate: 'Date', thProduct: 'Produit', thBest: 'Meilleur fournisseur', thScore: 'Score', thLanded: 'Rendu / unité', thQuote: 'Devis',
+    openCard: 'Ouvrir la fiche de cette mission', historyNone: 'Pas encore de mission. Essayez : « Trouve-moi 2000 flacons pour mon monoï ».', since: 'depuis',
+    chartEmpty: 'Pas encore de coût rendu — lancez une mission, ou donnez un prix cible (« à environ 40 centimes pièce »).',
+    chartTip: '{p} · {s} · {u} {c} l’unité rendue (×{m} le prix d’achat)', chartAria: 'Meilleur coût unitaire rendu par mission',
+    chartNote: '×2 signifie que le produit coûte deux fois son prix d’achat une fois livré (fret, assurance, droits, TVA, transitaire). Taux indicatifs.',
+    st_shortlisted: 'présélection', st_rfq_approved: 'devis approuvé', st_draft: 'brouillon', st_approved: 'approuvé', st_rejected: 'refusé', st_live: 'réelles', st_demo: 'démo',
+    m_sea: 'mer', m_air: 'avion', m_post: 'poste',
+  },
+};
+const pick = () => {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (q === 'fr' || q === 'en') return q;
+  try { const s = localStorage.getItem('manalog.lang'); if (s === 'fr' || s === 'en') return s; } catch {}
+  return /^fr/i.test(navigator.language || '') ? 'fr' : 'en';
+};
+let LANG = pick();
+const t = (k, v = {}) => String(T[LANG][k] ?? T.en[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? '');
+const st = (v) => (v == null ? '–' : T[LANG]['st_' + v] ?? v); // status / data-source words
+const LOCALE = () => (LANG === 'fr' ? 'fr-FR' : 'en-US');
+
+const fmt = (n) => (n == null ? '–' : Number(n).toLocaleString(LOCALE(), { maximumFractionDigits: 2 }));
 const history = [];
-const compact = (n) => Number(n).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+const compact = (n) => Number(n).toLocaleString(LOCALE(), { notation: 'compact', maximumFractionDigits: 1 });
 const CHIPS = {
   'en-US': ['Find me 2000 glass bottles for my monoi', 'Compare the suppliers', 'Send it', 'Who buys vanilla in the US?', "What's new with my suppliers?", 'My plan'],
   'fr-FR': ['Trouve-moi 2000 flacons pour mon monoï', 'Compare les fournisseurs', 'Envoie-la', 'Qui achète de la vanille aux États-Unis ?', 'Mon abonnement'],
 };
-function renderChips() { const l = $('lang').value; $('chips').innerHTML = CHIPS[l].map((c) => `<button class="chip" type="button">${esc(c)}</button>`).join(''); }
+function renderChips() { $('chips').innerHTML = CHIPS[$('lang').value].map((c) => `<button class="chip" type="button">${esc(c)}</button>`).join(''); }
 $('chips').addEventListener('click', (e) => { if (e.target.classList.contains('chip')) ask(e.target.textContent); });
-$('lang').addEventListener('change', renderChips);
-renderChips();
+
+// One switch drives the page text, the voice (speech recognition + synthesis) and the agent's reply language.
+let lastCard = null, defaultTagline = true;
+function setLang(l) {
+  LANG = l === 'fr' ? 'fr' : 'en';
+  try { localStorage.setItem('manalog.lang', LANG); } catch {}
+  document.documentElement.lang = LANG;
+  $('lang').value = LANG === 'fr' ? 'fr-FR' : 'en-US';
+  $('lgEn').setAttribute('aria-pressed', LANG === 'en'); $('lgFr').setAttribute('aria-pressed', LANG === 'fr');
+  document.querySelectorAll('[data-i18n]').forEach((el) => { if (el.id !== 'brandTag' || defaultTagline) el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = T[LANG][el.dataset.i18nHtml]; }); // trusted strings from T only
+  renderChips();
+  if (!$('ring').className.match(/listening|thinking|speaking/)) $('state').textContent = t('idle');
+  if (lastCard) renderCard(lastCard);
+  if (dash) renderDashboard(dash);
+  health();
+}
+$('lgEn').addEventListener('click', () => setLang('en'));
+$('lgFr').addEventListener('click', () => setLang('fr'));
+$('lang').addEventListener('change', () => setLang($('lang').value.startsWith('fr') ? 'fr' : 'en'));
 // Judges open the console with ?key=<their key>; it is never stored in the page source.
 { const k = new URLSearchParams(location.search).get('key'); if (k) $('key').value = k; }
 
@@ -177,28 +282,28 @@ function setState(s, label) { $('ring').className = 'ring ' + s; $('state').text
 function bubble(role, text) { const d = document.createElement('div'); d.className = 'b ' + (role === 'user' ? 'u' : 'a'); d.textContent = text; $('log').appendChild(d); $('log').scrollTop = 1e9; }
 
 async function health() {
-  try { const h = await (await fetch(base() + '/health')).json(); $('engine').textContent = 'engine: ' + (h.bedrock ? 'Bedrock' : 'offline router'); $('engine').classList.toggle('on', h.bedrock); $('data').textContent = 'data: ' + h.dataMode; $('data').classList.toggle('on', h.dataMode === 'live'); } catch {}
+  try { const h = await (await fetch(base() + '/health')).json(); $('engine').textContent = t('engine') + ': ' + (h.bedrock ? 'Bedrock' : t('offline')); $('engine').classList.toggle('on', h.bedrock); $('data').textContent = t('data') + ': ' + st(h.dataMode); $('data').classList.toggle('on', h.dataMode === 'live'); } catch {}
 }
 const base = () => ($('endpoint').value.trim() || location.origin).replace(/\/$/, '');
 
 async function ask(text) {
   text = text.trim(); if (!text) return;
-  $('q').value = ''; bubble('user', text); setState('thinking', 'Thinking…');
+  $('q').value = ''; bubble('user', text); setState('thinking', t('thinking'));
   try {
-    const r = await fetch(base() + '/agent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': $('key').value, 'x-manalog-user': $('user').value }, body: JSON.stringify({ text, history }) });
+    const r = await fetch(base() + '/agent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': $('key').value, 'x-manalog-user': $('user').value }, body: JSON.stringify({ text, history, lang: LANG }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.statusText);
     history.push({ role: 'user', text }, { role: 'assistant', text: j.reply });
     if (j.brand) applyBrand(j.brand);
     // Show the engine that actually answered: without a key the server falls back to the offline router.
-    if (j.engine) { const on = j.engine === 'bedrock'; $('engine').textContent = 'engine: ' + (on ? 'Bedrock' : 'offline router' + ($('key').value ? '' : ' (no key)')); $('engine').classList.toggle('on', on); }
+    if (j.engine) { const on = j.engine === 'bedrock'; $('engine').textContent = t('engine') + ': ' + (on ? 'Bedrock' : t('offline') + ($('key').value ? '' : ' ' + t('noKey'))); $('engine').classList.toggle('on', on); }
     bubble('assistant', j.reply);
     (j.calls || []).forEach(trace);
     const last = [...(j.calls || [])].reverse().find((c) => c.data);
     if (last) renderCard(last);
     speak(j.reply);
     if (!$('viewDash').hidden) loadDashboard();
-  } catch (e) { bubble('assistant', 'Error: ' + e.message); setState('', 'Tap the mic or type'); }
+  } catch (e) { bubble('assistant', t('error') + ': ' + e.message); setState('', t('idle')); }
 }
 
 function trace(c) {
@@ -208,69 +313,71 @@ function trace(c) {
   t.prepend(d);
 }
 
-function applyBrand(b) { $('brandName').textContent = b.name; $('brandTag').textContent = b.tagline || ''; document.documentElement.style.setProperty('--brand', b.color); $('logo').textContent = (b.name || 'M')[0]; document.title = b.name + ' Voice Console'; }
+function applyBrand(b) { $('brandName').textContent = b.name; defaultTagline = !b.tagline || b.tagline === T.en.tagline; $('brandTag').textContent = defaultTagline ? t('tagline') : b.tagline; document.documentElement.style.setProperty('--brand', b.color); $('logo').textContent = (b.name || 'M')[0]; document.title = b.name + ' Voice Console'; }
 
-const SOURCE_LABEL = { customs: 'US customs', web: 'web', aliexpress: 'AliExpress' };
-function renderCard({ name, data }) {
+const srcLabel = (s) => (s ? t('src_' + s) : null);
+function renderCard(c) {
+  const { name, data } = c;
   const el = $('card');
   if (!data) return;
+  lastCard = c;
   if (data.shortlist) {
     el.innerHTML = `<div class="card-title">${esc(data.input.quantity)} × ${esc(data.input.product)} → ${esc(data.input.destination)}</div>
-      <div class="card-sub">Mission ${esc(data.id)} · ${esc(data.status)} · ${esc(data.dataSource)} data</div>
+      <div class="card-sub">${esc(t('missionSub', { id: data.id, status: st(data.status), source: st(data.dataSource) }))}</div>
       ${data.shortlist.map((s) => `<div class="srow"><div class="score">${esc(s.score)}</div>
-        <div><div class="sname">${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>` : esc(s.name)}</div><div class="smeta">${[s.country, SOURCE_LABEL[s.source]].filter(Boolean).map(esc).join(' · ')} · MOQ ${esc(s.moq ?? '?')}${s.transitDays ? ' · ~' + esc(s.transitDays) + ' days' : ''}</div>${s.offer ? `<div class="smeta">${esc(s.offer)}</div>` : ''}
-        <details class="why"><summary>Why this score</summary>${(s.reasons || []).map(esc).join('<br>')}</details></div>
-        <div class="sprice">${s.localUnit ? `<b>${fmt(s.localUnit.unit)} ${esc(s.localUnit.currency)}</b><span class="smeta">per unit landed${s.priceSource === 'your target price' ? ' · at your target price' : ''}</span>` : '<span class="smeta">price on request</span>'}</div></div>`).join('')}
-      ${data.rfq ? `<div class="card-title" style="margin-top:14px">RFQ draft → ${esc(data.rfq.to)} <span class="pill">${esc(data.rfq.status)}</span></div><pre class="rfq">${esc(data.rfq.text)}</pre>` : ''}
-      ${data.steps ? `<details><summary class="smeta">Agent steps (${data.steps.length})</summary><ol class="steps">${data.steps.map((s) => `<li>${esc(s.step)}</li>`).join('')}</ol></details>` : ''}
-      ${data.origins?.origins?.length ? `<p class="smeta">${esc(data.input.destination)} imports this mostly from ${data.origins.origins.slice(0, 3).map((o) => `${esc(o.country)} ${esc(o.share)}%`).join(', ')} (UN Comtrade ${esc(data.origins.period)})</p>` : ''}
-      ${data.regulated ? `<p class="note">⚠ ${esc(data.regulated)}</p>` : ''}
-      <p class="note">Landed costs are estimates — confirm HS codes and rates with a licensed customs broker.</p>`;
+        <div><div class="sname">${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>` : esc(s.name)}</div><div class="smeta">${[s.country, srcLabel(s.source)].filter(Boolean).map(esc).join(' · ')} · MOQ ${esc(s.moq ?? '?')}${s.transitDays ? ' · ~' + esc(s.transitDays) + ' ' + t('days') : ''}</div>${s.offer ? `<div class="smeta">${esc(s.offer)}</div>` : ''}
+        <details class="why"><summary>${esc(t('why'))}</summary>${(s.reasons || []).map(esc).join('<br>')}</details></div>
+        <div class="sprice">${s.localUnit ? `<b>${fmt(s.localUnit.unit)} ${esc(s.localUnit.currency)}</b><span class="smeta">${esc(t('perUnit'))}${s.priceSource === 'your target price' ? esc(t('atTarget')) : ''}</span>` : `<span class="smeta">${esc(t('onRequest'))}</span>`}</div></div>`).join('')}
+      ${data.rfq ? `<div class="card-title" style="margin-top:14px">${esc(t('rfqDraft'))} → ${esc(data.rfq.to)} <span class="pill">${esc(st(data.rfq.status))}</span></div><pre class="rfq">${esc(data.rfq.text)}</pre>` : ''}
+      ${data.steps ? `<details><summary class="smeta">${esc(t('steps'))} (${data.steps.length})</summary><ol class="steps">${data.steps.map((s) => `<li>${esc(s.step)}</li>`).join('')}</ol></details>` : ''}
+      ${data.origins?.origins?.length ? `<p class="smeta">${esc(t('origins', { dest: data.input.destination, list: data.origins.origins.slice(0, 3).map((o) => `${o.country} ${o.share}%`).join(', '), period: data.origins.period }))}</p>` : ''}
+      ${data.regulated ? `<p class="note">⚠ ${esc(T[LANG].regulated ?? data.regulated)}</p>` : ''}
+      <p class="note">${esc(t('estimates'))}</p>`;
   } else if (data.mailto) {
-    el.innerHTML = `<div class="card-title">RFQ approved ✓</div><div class="card-sub">To ${esc(data.rfq.to)} — nothing is sent without you.</div><pre class="rfq">${esc(data.rfq.text)}</pre><a class="btn" href="${esc(data.mailto)}">Open in my email</a>`;
+    el.innerHTML = `<div class="card-title">${esc(t('rfqOk'))}</div><div class="card-sub">${esc(t('rfqTo', { to: data.rfq.to }))}</div><pre class="rfq">${esc(data.rfq.text)}</pre><a class="btn" href="${esc(data.mailto)}">${esc(t('openMail'))}</a>`;
   } else if (data.buyers) {
-    el.innerHTML = `<div class="card-title">US buyers of ${esc(data.product)}</div><div class="card-sub">${esc(data.source)} data · export prospects</div>` +
-      data.buyers.map((b) => `<div class="srow"><div class="score">${esc(b.shipments12m ?? '–')}</div><div><div class="sname">${esc(b.name)}</div><div class="smeta">${esc(b.state ?? '')} · sources from ${esc((b.topOrigins || []).join(', '))}</div></div><div class="sprice"><span class="smeta">shipments / 12 mo</span></div></div>`).join('');
+    el.innerHTML = `<div class="card-title">${esc(t('buyersT', { p: data.product }))}</div><div class="card-sub">${esc(t('buyersSub', { source: st(data.source) }))}</div>` +
+      data.buyers.map((b) => `<div class="srow"><div class="score">${esc(b.shipments12m ?? '–')}</div><div><div class="sname">${esc(b.name)}</div><div class="smeta">${esc(b.state ?? '')} · ${esc(t('sourcesFrom'))} ${esc((b.topOrigins || []).join(', '))}</div></div><div class="sprice"><span class="smeta">${esc(t('ship12'))}</span></div></div>`).join('');
   } else if (data.suppliers) {
-    el.innerHTML = `<div class="card-title">Suppliers of ${esc(data.product)}</div><div class="card-sub">${esc(data.source)} data</div>` +
-      data.suppliers.map((s) => `<div class="srow"><div class="score">${esc(s.score)}</div><div><div class="sname">${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>` : esc(s.name)}</div><div class="smeta">${[s.country, SOURCE_LABEL[s.source ?? 'customs']].filter(Boolean).map(esc).join(' · ')}${s.source === 'aliexpress' ? ` · ${esc(s.orders ?? 0)} recent orders` : s.source === 'web' ? '' : ` · ${esc(s.shipments12m ?? s.totalShipments ?? '?')} shipments`}</div></div><div class="sprice">${s.unitPriceUsd ? `<b>$${fmt(s.unitPriceUsd)}</b><span class="smeta">FOB unit</span>` : ''}</div></div>`).join('');
+    el.innerHTML = `<div class="card-title">${esc(t('suppliersT', { p: data.product }))}</div><div class="card-sub">${esc(t('dataSrc', { source: st(data.source) }))}</div>` +
+      data.suppliers.map((s) => `<div class="srow"><div class="score">${esc(s.score)}</div><div><div class="sname">${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>` : esc(s.name)}</div><div class="smeta">${[s.country, srcLabel(s.source ?? 'customs')].filter(Boolean).map(esc).join(' · ')}${s.source === 'aliexpress' ? ` · ${esc(s.orders ?? 0)} ${esc(t('recentOrders'))}` : s.source === 'web' ? '' : ` · ${esc(s.shipments12m ?? s.totalShipments ?? '?')} ${esc(t('shipments'))}`}</div></div><div class="sprice">${s.unitPriceUsd ? `<b>$${fmt(s.unitPriceUsd)}</b><span class="smeta">${esc(t('fobUnit'))}</span>` : ''}</div></div>`).join('');
   } else if (data.breakdownUsd) {
     const b = data.breakdownUsd;
-    el.innerHTML = `<div class="card-title">Landed cost → ${esc(data.destinationName)}</div><div class="card-sub">${esc(data.quantity)} units · ${esc(data.mode)} · ~${esc(data.transitDays)} days · category ${esc(data.category)}</div>
-      <table><tr><td>Goods</td><td>$${fmt(b.goods)}</td></tr><tr><td>Freight</td><td>$${fmt(b.freight)}</td></tr><tr><td>Insurance</td><td>$${fmt(b.insurance)}</td></tr>
+    el.innerHTML = `<div class="card-title">${esc(t('landedT', { d: data.destinationName }))}</div><div class="card-sub">${esc(t('landedSub', { q: fmt(data.quantity), mode: T[LANG]['m_' + data.mode] ?? data.mode, days: data.transitDays, cat: data.category }))}</div>
+      <table><tr><td>${esc(t('goods'))}</td><td>$${fmt(b.goods)}</td></tr><tr><td>${esc(t('freight'))}</td><td>$${fmt(b.freight)}</td></tr><tr><td>${esc(t('insurance'))}</td><td>$${fmt(b.insurance)}</td></tr>
       ${b.taxes.map((t) => `<tr><td>${esc(t.name)} (${fmt(t.rate * 100)}%)</td><td>$${fmt(t.amountUsd)}</td></tr>`).join('')}
-      <tr><td>Broker & handling</td><td>$${fmt(b.brokerage)}</td></tr><tr class="total"><td>Total</td><td>$${fmt(data.totalUsd)} · ${fmt(data.local.total)} ${esc(data.local.currency)}</td></tr>
-      <tr class="total"><td>Per unit</td><td>${fmt(data.local.unit)} ${esc(data.local.currency)} (×${fmt(data.landedMultiplier)})</td></tr></table>
+      <tr><td>${esc(t('broker'))}</td><td>$${fmt(b.brokerage)}</td></tr><tr class="total"><td>${esc(t('total'))}</td><td>$${fmt(data.totalUsd)} · ${fmt(data.local.total)} ${esc(data.local.currency)}</td></tr>
+      <tr class="total"><td>${esc(t('perUnitRow'))}</td><td>${fmt(data.local.unit)} ${esc(data.local.currency)} (×${fmt(data.landedMultiplier)})</td></tr></table>
       ${data.disclaimer ? `<p class="note">${esc(data.disclaimer)}</p>` : ''}`;
   } else if (data.planLabel || data.plan) {
-    el.innerHTML = `<div class="card-title">${esc(data.brand?.name)} — ${esc(data.planLabel)} plan</div><div class="card-sub">${esc(data.calls)} / ${esc(data.limit)} calls this month · data ${esc(data.dataMode)}</div>
-      <p class="smeta">Features: ${esc((data.features || []).join(', '))}</p><p class="smeta">Destinations: ${esc((data.destinations || []).map((d) => d.code + ' ' + d.name).join(' · '))}</p>
-      <a class="btn ghost" href="${esc(data.upgradeUrl)}" target="_blank" rel="noopener">White-label & plans</a>`;
+    el.innerHTML = `<div class="card-title">${esc(t('planT', { brand: data.brand?.name, plan: data.planLabel }))}</div><div class="card-sub">${esc(t('planSub', { calls: data.calls, limit: data.limit, mode: st(data.dataMode) }))}</div>
+      <p class="smeta">${esc(t('features'))} : ${esc((data.features || []).join(', '))}</p><p class="smeta">${esc(t('destinations'))} : ${esc((data.destinations || []).map((d) => d.code + ' ' + d.name).join(' · '))}</p>
+      <a class="btn ghost" href="${esc(data.upgradeUrl)}" target="_blank" rel="noopener">${esc(t('plans'))}</a>`;
   } else if (data.items) {
-    el.innerHTML = `<div class="card-title">Watchlist</div>` + (data.items.map((i) => `<div class="srow"><div class="score">${i.changes.length ? '!' : '✓'}</div><div><div class="sname">${esc(i.name)}</div><div class="smeta">${esc(i.changes.join(', ') || 'no change')}</div></div><div></div></div>`).join('') || '<p class="empty">Empty</p>');
+    el.innerHTML = `<div class="card-title">${esc(t('watchlist'))}</div>` + (data.items.map((i) => `<div class="srow"><div class="score">${i.changes.length ? '!' : '✓'}</div><div><div class="sname">${esc(i.name)}</div><div class="smeta">${esc(i.changes.join(', ') || t('noChange'))}</div></div><div></div></div>`).join('') || `<p class="empty">${esc(t('empty'))}</p>`);
   } else if (data.emails) {
-    el.innerHTML = `<div class="card-title">${esc(data.title || data.url)}</div><div class="card-sub">${esc(data.url)}</div><p>Emails: ${esc(data.emails.join(', ') || '–')}<br>Phones: ${esc(data.phones.join(', ') || '–')}</p>${data.aiCard ? `<pre class="rfq">${esc(JSON.stringify(data.aiCard, null, 2))}</pre>` : ''}`;
+    el.innerHTML = `<div class="card-title">${esc(data.title || data.url)}</div><div class="card-sub">${esc(data.url)}</div><p>${esc(t('emails'))} : ${esc(data.emails.join(', ') || '–')}<br>${esc(t('phones'))} : ${esc(data.phones.join(', ') || '–')}</p>${data.aiCard ? `<pre class="rfq">${esc(JSON.stringify(data.aiCard, null, 2))}</pre>` : ''}`;
   } else {
     el.innerHTML = `<pre class="rfq">${esc(JSON.stringify(data, null, 2).slice(0, 3000))}</pre>`;
   }
 }
 
 function speak(text) {
-  if (!('speechSynthesis' in window)) { setState('', 'Tap the mic or type'); return; }
+  if (!('speechSynthesis' in window)) { setState('', t('idle')); return; }
   const u = new SpeechSynthesisUtterance(text); u.lang = $('lang').value; u.rate = 1.03;
-  u.onstart = () => setState('speaking', 'Speaking'); u.onend = u.onerror = () => setState('', 'Tap the mic or type');
+  u.onstart = () => setState('speaking', t('speaking')); u.onend = u.onerror = () => setState('', t('idle'));
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec;
 $('mic').addEventListener('click', () => {
-  if (!SR) { $('q').focus(); $('state').textContent = 'Voice input not supported here — type instead'; return; }
+  if (!SR) { $('q').focus(); $('state').textContent = t('noVoice'); return; }
   if (rec) { rec.stop(); return; }
   rec = new SR(); rec.lang = $('lang').value; rec.interimResults = true;
-  rec.onstart = () => { setState('listening', 'Listening…'); $('mic').classList.add('rec'); speechSynthesis?.cancel(); };
+  rec.onstart = () => { setState('listening', t('listening')); $('mic').classList.add('rec'); speechSynthesis?.cancel(); };
   rec.onresult = (e) => { const r = e.results[e.results.length - 1]; $('q').value = r[0].transcript; if (r.isFinal) ask(r[0].transcript); };
-  rec.onend = () => { rec = null; $('mic').classList.remove('rec'); if ($('ring').classList.contains('listening')) setState('', 'Tap the mic or type'); };
+  rec.onend = () => { rec = null; $('mic').classList.remove('rec'); if ($('ring').classList.contains('listening')) setState('', t('idle')); };
   rec.start();
 });
 $('f').addEventListener('submit', (e) => { e.preventDefault(); ask($('q').value); });
@@ -291,43 +398,43 @@ async function loadDashboard() {
     const r = await fetch(base() + '/dashboard', { headers: { 'x-api-key': $('key').value, 'x-manalog-user': $('user').value } });
     const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText);
     dash = j; renderDashboard(j);
-  } catch (e) { $('kpis').innerHTML = `<p class="empty">Dashboard unavailable: ${esc(e.message)}</p>`; }
+  } catch (e) { $('kpis').innerHTML = `<p class="empty">${esc(t('dashErr'))}${esc(e.message)}</p>`; }
 }
 
 function renderDashboard(d) {
   const k = d.kpis, u = d.usage, pct = u.limit ? Math.min(100, Math.round((u.calls / u.limit) * 100)) : 0;
   $('kpis').innerHTML = [
-    [k.missions, 'sourcing missions'],
-    [k.totalLandedXpf == null ? '–' : compact(k.totalLandedXpf) + ' <small>XPF</small>', 'est. landed value of best offers'],
-        [k.avgMultiplier == null ? '–' : '×' + fmt(k.avgMultiplier), 'avg. landed multiplier'],
-    [`${k.rfqsApproved} <small>/ ${k.missions}</small>`, 'quote requests approved'],
+    [k.missions, t('kMissions')],
+    [k.totalLandedXpf == null ? '–' : compact(k.totalLandedXpf) + ' <small>XPF</small>', t('kValue')],
+        [k.avgMultiplier == null ? '–' : '×' + fmt(k.avgMultiplier), t('kMult')],
+    [`${k.rfqsApproved} <small>/ ${k.missions}</small>`, t('kRfq')],
   ].map(([v, l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div></div>`).join('') +
-    `<div class="kpi" style="grid-column:1/-1"><div class="l">${esc(u.planLabel)} plan · ${esc(u.calls)} of ${esc(u.limit)} calls used in ${esc(String(u.month).replace(/^(\d{4})(\d{2})$/, '$1-$2'))} · ${esc(k.watched)} supplier${k.watched === 1 ? '' : 's'} watched</div><div class="meter"><i style="width:${pct}%"></i></div></div>`;
+    `<div class="kpi" style="grid-column:1/-1"><div class="l">${esc(t('usage', { plan: u.planLabel, calls: u.calls, limit: u.limit, month: String(u.month).replace(/^(\d{4})(\d{2})$/, '$1-$2'), w: k.watched }))}</div><div class="meter"><i style="width:${pct}%"></i></div></div>`;
   renderChart(d.missions);
-  $('history').innerHTML = d.missions.length ? `<table class="mt"><thead><tr><th class="hide-s">Date</th><th>Product</th><th class="hide-s">Best supplier</th><th>Score</th><th class="n">Landed / unit</th><th>Quote</th></tr></thead><tbody>` +
-    d.missions.map((m, i) => `<tr class="click" data-i="${i}" title="Open this mission's card"><td class="hide-s">${esc(new Date(m.createdAt).toLocaleDateString())}</td><td>${esc(fmt(m.quantity))} × ${esc(m.product)} → ${esc(m.destination)}</td><td class="hide-s">${esc(m.topSupplier ?? '–')}</td><td>${esc(m.topScore ?? '–')}</td><td class="n">${m.bestUnit ? `${fmt(m.bestUnit.unit)} ${esc(m.bestUnit.currency)}` : '–'}</td><td><span class="pill ${m.rfqStatus === 'approved' ? 'ok' : m.rfqStatus === 'rejected' ? 'no' : ''}">${esc(m.rfqStatus ?? '–')}</span></td></tr>`).join('') + '</tbody></table>'
-    : '<p class="empty">No missions yet. Try: “Find me 2000 glass bottles for my monoi”.</p>';
-  $('watch').innerHTML = d.watchlist.length ? d.watchlist.map((w) => `<div class="srow"><div class="score">👁</div><div><div class="sname">${esc(w.name)}</div><div class="smeta">${esc(w.country ?? '')}${w.note ? ' · ' + esc(w.note) : ''}</div></div><div class="sprice"><span class="smeta">since ${esc(new Date(w.addedAt).toLocaleDateString())}</span></div></div>`).join('')
-    : '<p class="empty">Say “watch this supplier” to follow its shipments.</p>';
+  $('history').innerHTML = d.missions.length ? `<table class="mt"><thead><tr><th class="hide-s">${esc(t('thDate'))}</th><th>${esc(t('thProduct'))}</th><th class="hide-s">${esc(t('thBest'))}</th><th>${esc(t('thScore'))}</th><th class="n">${esc(t('thLanded'))}</th><th>${esc(t('thQuote'))}</th></tr></thead><tbody>` +
+    d.missions.map((m, i) => `<tr class="click" data-i="${i}" title="${esc(t('openCard'))}"><td class="hide-s">${esc(new Date(m.createdAt).toLocaleDateString(LOCALE()))}</td><td>${esc(fmt(m.quantity))} × ${esc(m.product)} → ${esc(m.destination)}</td><td class="hide-s">${esc(m.topSupplier ?? '–')}</td><td>${esc(m.topScore ?? '–')}</td><td class="n">${m.bestUnit ? `${fmt(m.bestUnit.unit)} ${esc(m.bestUnit.currency)}` : '–'}</td><td><span class="pill ${m.rfqStatus === 'approved' ? 'ok' : m.rfqStatus === 'rejected' ? 'no' : ''}">${esc(st(m.rfqStatus))}</span></td></tr>`).join('') + '</tbody></table>'
+    : `<p class="empty">${esc(t('historyNone'))}</p>`;
+  $('watch').innerHTML = d.watchlist.length ? d.watchlist.map((w) => `<div class="srow"><div class="score">👁</div><div><div class="sname">${esc(w.name)}</div><div class="smeta">${esc(w.country ?? '')}${w.note ? ' · ' + esc(w.note) : ''}</div></div><div class="sprice"><span class="smeta">${esc(t('since'))} ${esc(new Date(w.addedAt).toLocaleDateString(LOCALE()))}</span></div></div>`).join('')
+    : `<p class="empty">${esc(t('watchEmpty'))}</p>`;
 }
 
 function renderChart(ms) {
   const pts = ms.filter((m) => m.bestUnit?.multiplier).slice(0, 8).reverse();
-  if (!pts.length) { $('chart').innerHTML = '<p class="empty">No landed costs yet — run a mission, or give a target price (“at about 40 cents each”).</p>'; return; }
+  if (!pts.length) { $('chart').innerHTML = `<p class="empty">${esc(t('chartEmpty'))}</p>`; return; }
   const W = Math.max(300, Math.min(720, $('chart').clientWidth || 560)), H = 210, padB = 34, padT = 22, bw = Math.min(56, (W - 20) / pts.length - 14);
   const max = Math.max(...pts.map((p) => p.bestUnit.multiplier)) * 1.12 || 1;
   const step = (W - 20) / pts.length;
   const bars = pts.map((p, i) => {
     const h = ((H - padB - padT) * p.bestUnit.multiplier) / max, x = 10 + i * step + (step - bw) / 2, y = H - padB - h;
     const max_ = Math.max(6, Math.floor(step / 7.5)); const label = p.product.length > max_ ? p.product.slice(0, max_ - 1) + '…' : p.product;
-    return `<g><title>${esc(p.product)} · ${esc(p.bestUnit.supplier)} · ${fmt(p.bestUnit.unit)} ${esc(p.bestUnit.currency)} per unit landed (×${fmt(p.bestUnit.multiplier)} the purchase price)</title>
+    return `<g><title>${esc(t('chartTip', { p: p.product, s: p.bestUnit.supplier, u: fmt(p.bestUnit.unit), c: p.bestUnit.currency, m: fmt(p.bestUnit.multiplier) }))}</title>
       <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="6" fill="url(#g)"/>
       <text class="val" x="${x + bw / 2}" y="${y - 6}" text-anchor="middle">×${fmt(p.bestUnit.multiplier)}</text>
       <text x="${x + bw / 2}" y="${H - padB + 16}" text-anchor="middle">${esc(label)}</text>
-      <text x="${x + bw / 2}" y="${H - padB + 29}" text-anchor="middle">${esc(new Date(p.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</text></g>`;
+      <text x="${x + bw / 2}" y="${H - padB + 29}" text-anchor="middle">${esc(new Date(p.createdAt).toLocaleDateString(LOCALE(), { day: 'numeric', month: 'short' }))}</text></g>`;
   }).join('');
-  $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Best landed unit cost per mission"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--brand-2)"/><stop offset="1" stop-color="var(--brand)"/></linearGradient></defs>
-    <line x1="0" x2="${W}" y1="${H - padB}" y2="${H - padB}" stroke="var(--line)"/>${bars}</svg><p class="note">×2 means the product costs twice its purchase price once delivered (freight, insurance, duties, VAT, broker). Indicative rates.</p>`;
+  $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('chartAria'))}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--brand-2)"/><stop offset="1" stop-color="var(--brand)"/></linearGradient></defs>
+    <line x1="0" x2="${W}" y1="${H - padB}" y2="${H - padB}" stroke="var(--line)"/>${bars}</svg><p class="note">${esc(t('chartNote'))}</p>`;
 }
 
 window.addEventListener('resize', () => { if (dash && !$('viewDash').hidden) renderChart(dash.missions); });
@@ -335,7 +442,7 @@ $('history').addEventListener('click', (e) => {
   const tr = e.target.closest('tr[data-i]'); if (!tr || !dash) return;
   renderCard({ data: dash.missions[Number(tr.dataset.i)].detail }); showTab('live');
 });
-health();
+setLang(LANG);
 </script>
 </body>
 </html>

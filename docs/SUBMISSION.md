@@ -40,7 +40,7 @@ Voice agents need *explainable* numbers; "score 90" means nothing until you hear
 Verified tariff profiles with Tahiti customs brokers, group purchasing (one mission shared by several artisans, consolidated through the ManaLog logistics hub), OAuth account linking, and more trade datasets (EU and Pacific).
 
 ## Built with
-alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb, aws-sam, node.js, claude, web-speech-api, importyeti
+alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb, aws-sam, node.js, claude, web-speech-api, importyeti, brave-search-api, aliexpress-api, un-comtrade
 
 ## Testing instructions
 - Repo: https://github.com/Heya-56/manalog (AGPL-3.0)
@@ -59,6 +59,9 @@ alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb,
 - MCP TypeScript SDK 1.30.1: Streamable HTTP server, tools, resources, prompts, MCP App resource
 - Amazon Bedrock Converse API: agent tool-use loop, RFQ drafting, supplier-page extraction
 - AWS Lambda Function URLs, DynamoDB, SAM: hosting, state and metering, infrastructure as code
+- ImportYeti API: US customs bills of lading (proven exporters)
+- UN Comtrade API (free preview): where the destination imports each product from, as a scoring bonus
+- Brave Search API and AliExpress affiliate API: web manufacturers and priced small-lot offers when customs data is thin (enabled once their keys are set)
 - *(Alexa+ developer tooling: fill in what you used to register and test)*
 
 **What worked well:** *(e.g. web-standard transport ran unchanged on Lambda; Bedrock Converse tool-use maps 1:1 to MCP tool schemas via JSON Schema)*
