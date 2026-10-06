@@ -49,15 +49,6 @@
 - **Workaround:** Attached AdministratorAccess to the user (hackathon only) and verified with `aws iam list-attached-user-policies`.
 - **Suggestion:** SAM CLI could run a permissions pre-flight (e.g. IAM policy simulator) before creating the managed stack; the IAM console could flag near-identical managed policy names.
 
-## 8. winget missing on Windows 10 Enterprise LTSC
-- **Task:** Install the AWS SAM CLI with `winget install Amazon.SAM-CLI`, as the runbook said.
-- **Steps:** Ran `winget` on Windows 10 Enterprise LTSC 2021.
-- **Expected:** winget available, as on consumer Windows 10/11.
-- **Actual:** LTSC ships without the Microsoft Store / App Installer, so `winget` does not exist.
-- **Severity:** Low
-- **Workaround:** Installed the AWS CLI and SAM CLI from their MSI installers (links now printed by `scripts/deploy.ps1`).
-- **Suggestion:** AWS install docs could lead with the MSI for Windows and mention LTSC/Server editions lacking winget.
-
 ## 7. Antivirus HTTPS scanning breaks AWS CLI, SAM and Node on Windows
 - **Task:** Run the AWS CLI, SAM and the e2e MCP client from a Windows 10 LTSC machine with Avast.
 - **Steps:** `aws sts get-caller-identity`; later `node test/e2e-mcp-client.mjs <url>/mcp`.
@@ -66,6 +57,15 @@
 - **Severity:** High (blocks deployment with an opaque error)
 - **Workaround:** Exported the Avast root from the Windows store to PEM and set `AWS_CA_BUNDLE` / `NODE_EXTRA_CA_CERTS` for the session; the e2e parse error needs an Avast exception for `*.amazonaws.com` / `*.on.aws`.
 - **Suggestion:** AWS CLI v2 on Windows could optionally trust the OS certificate store, and the TLS error could mention interception proxies.
+
+## 8. winget missing on Windows 10 Enterprise LTSC
+- **Task:** Install the AWS SAM CLI with `winget install Amazon.SAM-CLI`, as the runbook said.
+- **Steps:** Ran `winget` on Windows 10 Enterprise LTSC 2021.
+- **Expected:** winget available, as on consumer Windows 10/11.
+- **Actual:** LTSC ships without the Microsoft Store / App Installer, so `winget` does not exist.
+- **Severity:** Low
+- **Workaround:** Installed the AWS CLI and SAM CLI from their MSI installers (links now printed by `scripts/deploy.ps1`).
+- **Suggestion:** AWS install docs could lead with the MSI for Windows and mention LTSC/Server editions lacking winget.
 
 ## 9. ImportYeti live response shape differs from what we coded against
 - **Task:** Score live suppliers (country, 12-month shipments, last shipment date, website).

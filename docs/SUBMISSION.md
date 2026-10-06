@@ -1,10 +1,10 @@
 # Devpost submission kit (copy-paste)
 
 ## Name
-ManaLog: voice sourcing agent for island makers
+ManaLog: voice import-export copilot for Pacific Island businesses
 
 ## Tagline
-Ask Alexa to source it: proven suppliers from customs data, landed cost to your island, and a quote request ready to approve.
+Ask Alexa to source it and check it: proven suppliers from customs data, landed cost to your island, a quote request ready to approve, and a customs check of your paperwork.
 
 ## Tracks
 - Primary: **Alexa+** (self-hosted MCP server, spec 2025-11-25, Streamable HTTP, plus a simulated Alexa+ voice console)
@@ -14,7 +14,7 @@ Ask Alexa to source it: proven suppliers from customs data, landed cost to your 
 In French Polynesia, a monoï maker who needs 2,000 glass bottles has no purchasing department, sits 6,000 km from the nearest factory, and pays freight, customs duty, local development tax and VAT on top of the factory price. Finding a reliable supplier takes weeks of guesswork. Big companies use trade-data analysts; island makers use Facebook groups. We wanted the analyst in a voice.
 
 ## What it does
-ManaLog gives Alexa+ an agentic import/export workflow through 13 MCP tools:
+ManaLog gives Alexa+ an agentic import/export workflow through 14 MCP tools:
 - **Sourcing missions:** one sentence triggers the full chain. It finds suppliers that have *actually shipped* the product (US customs bills of lading via ImportYeti), enriches and scores them 0–100 with reasons you can hear, estimates the **landed cost to the destination** (freight, insurance, stacked duties and taxes, brokerage, in USD and XPF), filters by budget, shortlists three and drafts an RFQ email with Amazon Bedrock.
 - **Island products, not just container cargo:** the request is turned into precise English search terms and HS codes (Bedrock), so "fournitures de tatouage" or "coquillages" work. When US customs data is thin, ManaLog adds manufacturers found on the web (homepages read for contacts) and small-lot AliExpress offers with real prices, and weights the scores with official UN Comtrade statistics on where Tahiti actually imports each product from. Every supplier says where it came from.
 - **Pacific customs check (Fiji first):** "check my invoice for Suva" verifies the invoice arithmetic, HS codes, importer TIN and the bill of lading (port, consignee, weight), then recomputes fiscal duty and VAT with the official FRCS formula (VAT 12.5% since 1 August 2025) and flags a draft entry still using the old 15% rate. The math is deterministic, in integer cents, from our new open-source library **pacific-customs-kit** (MIT); the LLM never computes a tax.
@@ -24,11 +24,6 @@ ManaLog gives Alexa+ an agentic import/export workflow through 13 MCP tools:
 - **Supplier website reading:** robots.txt-aware, SSRF-hardened; Bedrock turns the page into a supplier card.
 - **Screen cards:** an MCP App (`text/html;profile=mcp-app`) renders the shortlist on screen devices.
 - **White-label:** one deployment serves many brands with their own names, voice personas, colors, verified tax rates, quotas and metering.
-
-## Open Source contribution
-- New repository created during the hackathon: https://github.com/Heya-56/pacific-customs-kit (MIT, GitHub user Heya-56)
-- What: country customs profiles for Pacific Island states (Fiji first, every figure with an official source and a verified flag), strict zod schemas for commercial invoices and bills of lading, deterministic import-charge math in integer cents (FRCS formula: duty and excise on CIF, VAT on CIF + duty + excise) and discrepancy checks, with tests.
-- Why it matters: Pacific importers and brokers work from scanned paperwork and island-specific tax rules; the kit lets any developer (or AI agent) validate trade documents without letting a model invent tax figures. ManaLog consumes it as a dependency.
 
 ## How we built it
 Node 22 on **AWS Lambda** (Function URL, arm64) using the official MCP TypeScript SDK's web-standard Streamable HTTP transport in stateless JSON mode, **DynamoDB** single-table storage, and **Amazon Bedrock** (Converse API with tool use) for the voice agent, RFQ drafting and page extraction. A single tool registry feeds both the MCP server and the Bedrock agent, so the console shows exactly what Alexa+ calls. Deployed with **AWS SAM**. Tested with `node:test` (11 tests) and an end-to-end run with the official MCP SDK client.
@@ -46,35 +41,55 @@ Voice agents need *explainable* numbers; "score 90" means nothing until you hear
 Verified tariff profiles with Tahiti customs brokers, group purchasing (one mission shared by several artisans, consolidated through the ManaLog logistics hub), OAuth account linking, and more trade datasets (EU and Pacific).
 
 ## Built with
-alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb, aws-sam, node.js, claude, web-speech-api, importyeti, brave-search-api, aliexpress-api, un-comtrade
+alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb, aws-sam, node.js, claude, web-speech-api, importyeti, brave-search-api, aliexpress-api, un-comtrade, zod, pacific-customs-kit
 
 ## Testing instructions
 - Repo: https://github.com/Heya-56/manalog (AGPL-3.0)
 - Local: `npm install && npm start`, then open http://localhost:8787 (no keys needed, demo data)
 - Hosted console: https://wp4itqxfeguy5geyvssszy3aa40mwrro.lambda-url.us-west-2.on.aws/
 - MCP endpoint: https://wp4itqxfeguy5geyvssszy3aa40mwrro.lambda-url.us-west-2.on.aws/mcp with header `x-api-key: <JUDGES_KEY>` (Pro plan, free until judging ends). The console accepts it as `?key=<JUDGES_KEY>`. Paste the real key (local file `.judges-key`) only in the private Devpost field, never in the repo.
-- Demo script: "Find me 2000 glass bottles for my monoi" → "Compare the suppliers" → "Send it" → "Who buys vanilla in the US?"
+- Demo script: "Find me 2000 glass bottles for my monoi" → "Compare the suppliers" → "Send it" → "Who buys vanilla in the US?" → "Check my invoice for Suva" (Fiji customs check on a fictional demo file; works without a key)
 
 ## Open Source mini-challenge
-- Contribution URL / repo URL: https://github.com/Heya-56/manalog
-- GitHub username: Heya-56
-- What & why: a new AGPL-3.0 MCP server that turns public customs trade data into an agentic, voice-first sourcing workflow for small importers and exporters. It includes a reusable Lambda pattern for Streamable HTTP MCP (stateless transport, DynamoDB state), a robots.txt-aware and SSRF-hardened scraping tool, and a pluggable landed-cost engine where anyone can contribute verified tariff profiles for their country.
+- **Contribution URL (new open-source project created during the hackathon):** https://github.com/Heya-56/pacific-customs-kit (MIT)
+- **Project repository URL:** https://github.com/Heya-56/manalog (AGPL-3.0)
+- **GitHub username:** Heya-56
+- **What we did:** a new library, pacific-customs-kit, with (1) customs profiles for Pacific Island states, Fiji first, where every figure carries an official source and a `verified` flag (VAT 12.5% since 1 Aug 2025, FRCS valuation formula, entry offices, trade lanes); (2) strict zod schemas for commercial invoices and bills of lading (HS codes, UN/LOCODEs, ISO currencies) that also generate JSON Schema for structured LLM output; (3) deterministic import-charge math in integer cents (fiscal duty and excise on CIF, VAT on CIF + duty + excise); (4) discrepancy checks between documents and against declared charges; 12 tests.
+- **How it works:** pure Node.js, one dependency (zod). ManaLog installs it from GitHub and calls it from its `check_customs_documents` MCP tool and its Fiji landed-cost profile; a ManaLog test asserts both give the same figures.
+- **Why it matters:** Pacific importers and customs agents work from scanned paperwork and island-specific tax rules that change (Fiji cut VAT from 15% to 12.5% in 2025, and old templates still circulate). The kit lets any developer, or any AI agent, check trade documents without letting a model invent tax figures, and new country profiles can be contributed with sources and tests.
 
-## Product feedback (fill in during deployment)
-**Tools, APIs and SDKs used and for what**
-- MCP TypeScript SDK 1.30.1: Streamable HTTP server, tools, resources, prompts, MCP App resource
-- Amazon Bedrock Converse API: agent tool-use loop, RFQ drafting, supplier-page extraction
-- AWS Lambda Function URLs, DynamoDB, SAM: hosting, state and metering, infrastructure as code
-- ImportYeti API: US customs bills of lading (proven exporters)
-- UN Comtrade API (free preview): where the destination imports each product from, as a scoring bonus
-- Brave Search API and AliExpress affiliate API: web manufacturers and priced small-lot offers when customs data is thin (enabled once their keys are set)
-- *(Alexa+ developer tooling: fill in what you used to register and test)*
+## Product feedback
+> DRAFT written from our build notes. Heya: read it, change anything that does not match your experience, then paste it into Devpost.
 
-**What worked well:** *(e.g. web-standard transport ran unchanged on Lambda; Bedrock Converse tool-use maps 1:1 to MCP tool schemas via JSON Schema)*
-**What needs work:** *(see docs/FRICTION_LOG.md)*
-**Onboarding (zero to hello world):** *(time and notes)*
-**Build again?** *(Yes/No + why)*
+**Which developer tools, APIs and SDKs did you use and for what?**
+- **MCP TypeScript SDK 1.30.1** (`@modelcontextprotocol/sdk`): the Alexa+ server. Streamable HTTP transport (spec 2025-11-25) in stateless JSON mode, 14 tools with structured output, an MCP App resource (`ui://manalog/mission-card.html`), a prompt and a resource. Also the SDK client for our end-to-end test.
+- **Amazon Bedrock** (Converse API with tool use, Claude Sonnet 4.5 through the `us.` cross-region inference profile in us-west-2): the voice agent loop that calls the same 14 tools, quote-request drafting, supplier web-page extraction and product-to-HS-code planning.
+- **AWS Lambda** (Node.js 22, arm64, Function URL): hosts the MCP endpoint, the voice agent and the console with one handler.
+- **Amazon DynamoDB** (on-demand, single table): missions, watchlist and per-tenant usage metering, keyed by tenant + user.
+- **AWS SAM / CloudFormation**: infrastructure as code and one-command deploys (`scripts/deploy.ps1`), including secret parameters (judges' key, data-source keys) and a pause mode.
+- **AWS IAM**: a dedicated deployer user; a scoped Lambda role (CRUD on its own DynamoDB table, plus `bedrock:InvokeModel`).
+- **Third-party data**: ImportYeti API (US customs bills of lading), UN Comtrade (official trade statistics), optional Brave Search and AliExpress affiliate APIs, all used under their own accounts and terms.
+
+**What worked well?**
+- The SDK's web-standard Streamable HTTP transport ran unchanged inside Lambda once we used stateless mode with JSON responses.
+- Bedrock Converse tool use maps one-to-one to MCP tool schemas (both are JSON Schema), so a single tool registry serves Alexa+ and our Bedrock agent.
+- SAM gave us repeatable deploys; Lambda + DynamoDB on-demand cost nothing while idle.
+
+**What needs work?** (details and severity in docs/FRICTION_LOG.md)
+- Bedrock: the old "Model access" page is gone and Anthropic models need a use-case form first; IAM denial and missing model access both surface as the same `AccessDeniedException`.
+- No official reference for hosting an Alexa+ MCP server on Lambda (sessions, streaming, buffering).
+- Windows onboarding: no winget on LTSC editions, antivirus HTTPS scanning breaks the AWS CLI, SAM and Node.
+- Alexa+ availability and testing outside the US launch regions.
+
+**How was your onboarding experience (zero to hello world)?**
+- Local MCP server answering `tools/list` on day one. The first AWS deploy took longer than the code: IAM permissions, the Bedrock use-case form and antivirus TLS interception.
+
+**Would you build with these devices and services again?**
+- Yes: MCP lets one backend serve Alexa+, other AI clients and our own console, and Lambda + Bedrock + DynamoDB keep a small team's costs near zero until real usage.
+
+**AWS Builder mini-challenge — AWS services and how we used them:** Lambda (Function URL hosting the MCP server, agent and console), Amazon Bedrock (Converse tool-use agent, RFQ drafting, page extraction, HS-code planning), DynamoDB (state and metering), SAM/CloudFormation (infrastructure as code with secret parameters), IAM (scoped execution role). Architecture diagram and service list: README, sections "Architecture" and "AWS services used".
 
 ## Feature requests (optional)
 - Official Alexa+ MCP reference deployment on Lambda · Important
-- Test path for builders outside Alexa+ launch regions · Critical (our users are in French Polynesia)
+- Test path for builders outside Alexa+ launch regions · Critical (our users are in French Polynesia and Fiji)
+- Bedrock: distinguish "model access not granted" from "IAM denied" in the error · Important
