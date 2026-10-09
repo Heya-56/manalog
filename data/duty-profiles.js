@@ -5,33 +5,23 @@
 
 import { getProfile } from 'pacific-customs-kit';
 
-// Fiji comes from the open-source pacific-customs-kit (MIT): official VAT and FRCS valuation formula with sources.
-// FRCS: fiscal duty and import excise on CIF, then VAT on CIF + duty + excise — the same "compound" stacking used below.
+// Fiji and French Polynesia come from the open-source pacific-customs-kit (MIT): official VAT, valuation rules and
+// fixed taxes with sources. The landed-cost engine delegates their tax math to the kit (see src/core/landed-cost.js).
 const fjKit = getProfile('FJ');
-const fjCategories = Object.fromEntries(Object.entries(fjKit.duty.categories).map(([cat, r]) => [cat, [
-  { name: 'Fiscal duty', rate: r.fiscalDuty },
-  { name: 'Import excise', rate: r.importExcise },
-  { name: `VAT (${fjKit.vat.rate * 100}%, official since ${fjKit.vat.effectiveFrom})`, rate: fjKit.vat.rate, compound: true },
-]]));
+const pfKit = getProfile('PF');
 
 export const dutyProfiles = {
   PF: {
-    name: 'French Polynesia (Tahiti)', currency: 'XPF', fxPerUsd: 110, verified: false,
-    notes: 'Island destination: most goods transit via Papeete. Local taxes stack on CIF value. Verify with the Direction régionale des douanes de Polynésie française or a licensed broker.',
-    categories: {
-      packaging:        [{ name: 'Customs duty', rate: 0.05 }, { name: 'Local development tax', rate: 0.10 }, { name: 'VAT (import)', rate: 0.16, compound: true }],
-      food_raw:         [{ name: 'Customs duty', rate: 0.00 }, { name: 'Local development tax', rate: 0.05 }, { name: 'VAT (import, reduced)', rate: 0.05, compound: true }],
-      cosmetic_inputs:  [{ name: 'Customs duty', rate: 0.05 }, { name: 'Local development tax', rate: 0.10 }, { name: 'VAT (import)', rate: 0.16, compound: true }],
-      craft_materials:  [{ name: 'Customs duty', rate: 0.05 }, { name: 'Local development tax', rate: 0.05 }, { name: 'VAT (import)', rate: 0.16, compound: true }],
-      general:          [{ name: 'Customs duty', rate: 0.10 }, { name: 'Local development tax', rate: 0.10 }, { name: 'VAT (import)', rate: 0.16, compound: true }],
-    },
+    name: 'French Polynesia (Tahiti)', currency: 'XPF', fxPerUsd: pfKit.fx.indicativeXpfPerUsd, verified: false, kit: 'PF',
+    notes: 'VAT 16% on CIF + duty + taxes, TEA 2%, toll 1.25%, statistical tax and PID are official (customs FAQ). Customs duty depends on the tariff line and origin; product taxes (TDL, TCP...) are not included. Check a line with the official customs simulator or a transitaire.',
+    sources: { vat: pfKit.vat.source, valuation: pfKit.valuation.source, simulator: pfKit.lodgement.officialSimulator },
+    ports: pfKit.offices,
   },
   FJ: {
-    name: 'Fiji', currency: 'FJD', fxPerUsd: fjKit.fx.indicativeFjdPerUsd, verified: false,
+    name: 'Fiji', currency: 'FJD', fxPerUsd: fjKit.fx.indicativeFjdPerUsd, verified: false, kit: 'FJ',
     notes: `VAT ${fjKit.vat.rate * 100}% is official (FRCS). Fiscal duty and excise are illustrative until the exact tariff line is confirmed; FRCS converts at the weekly ASYCUDA exchange rate. Entries are lodged in ASYCUDA World by the importer or a customs agent.`,
     sources: { vat: fjKit.vat.source, valuation: fjKit.valuation.source },
     ports: fjKit.offices,
-    categories: fjCategories,
   },
   US: {
     name: 'United States', currency: 'USD', fxPerUsd: 1, verified: false,

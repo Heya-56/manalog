@@ -368,7 +368,7 @@ function renderCard(c) {
       ${data.extraction ? `<p class="smeta">Read by ${data.extraction.engine === 'bedrock' ? 'Amazon Bedrock (strict JSON Schema' + (data.extraction.attempts > 1 ? ', 1 repair round' : '') + ')' : 'the demo transcription'} · image quality: ${esc(data.extraction.imageQuality ?? '–')}${(data.extraction.lowConfidenceFields || []).length ? ' · check: ' + esc(data.extraction.lowConfidenceFields.join(', ')) : ''}${(data.extraction.unreadable || []).length ? ' · unreadable: ' + esc(data.extraction.unreadable.join('; ')) : ''}</p>${data.extraction.note ? `<p class="note">${esc(data.extraction.note)}</p>` : ''}` : ''}
       ${data.errors.map((x) => row(x, 'error')).join('')}${data.warnings.map((x) => row(x, 'warning')).join('')}
       ${c ? `<table style="margin-top:12px"><tr><td>Value for duty (CIF)</td><td>${fmt(c.valueForDuty)} ${esc(c.currency)}</td></tr>
-        ${c.lines.map((l) => `<tr><td>${esc(l.name)} (${fmt(l.rate * 100)}%${l.rateSource === 'official' ? ', official' : l.rateSource === 'illustrative-default' ? ', illustrative' : ''})</td><td>${fmt(l.amount)} ${esc(c.currency)}</td></tr>`).join('')}
+        ${c.lines.map((l) => `<tr><td>${esc(l.name)} (${l.rate != null ? fmt(l.rate * 100) + '%' : fmt(l.unitAmount) + ' ' + esc(c.currency) + ' / ' + esc(l.per)}${l.rateSource === 'official' ? ', official' : l.rateSource === 'illustrative-default' ? ', illustrative' : ''})</td><td>${fmt(l.amount)} ${esc(c.currency)}</td></tr>`).join('')}
         <tr class="total"><td>Expected charges</td><td>${fmt(c.totalCharges)} ${esc(c.currency)}</td></tr></table>` : ''}
       ${(data.notes || []).map((n) => `<p class="note">${esc(n)}</p>`).join('')}
       <p class="note">${esc(data.lodgement)} Computed with ${esc(data.poweredBy)}.</p>`;
@@ -384,7 +384,7 @@ function renderCard(c) {
     const b = data.breakdownUsd;
     el.innerHTML = `<div class="card-title">${esc(t('landedT', { d: data.destinationName }))}</div><div class="card-sub">${esc(t('landedSub', { q: fmt(data.quantity), mode: T[LANG]['m_' + data.mode] ?? data.mode, days: data.transitDays, cat: data.category }))}</div>
       <table><tr><td>${esc(t('goods'))}</td><td>$${fmt(b.goods)}</td></tr><tr><td>${esc(t('freight'))}</td><td>$${fmt(b.freight)}</td></tr><tr><td>${esc(t('insurance'))}</td><td>$${fmt(b.insurance)}</td></tr>
-      ${b.taxes.map((t) => `<tr><td>${esc(t.name)} (${fmt(t.rate * 100)}%)</td><td>$${fmt(t.amountUsd)}</td></tr>`).join('')}
+      ${b.taxes.map((t) => `<tr><td>${esc(t.name)}${t.rate != null ? ` (${fmt(t.rate * 100)}%)` : ''}${t.rateSource === 'official' ? ' ✓' : ''}</td><td>$${fmt(t.amountUsd)}${t.amountLocal != null ? ` · ${fmt(t.amountLocal)} ${esc(data.local.currency)}` : ''}</td></tr>`).join('')}
       <tr><td>${esc(t('broker'))}</td><td>$${fmt(b.brokerage)}</td></tr><tr class="total"><td>${esc(t('total'))}</td><td>$${fmt(data.totalUsd)} · ${fmt(data.local.total)} ${esc(data.local.currency)}</td></tr>
       <tr class="total"><td>${esc(t('perUnitRow'))}</td><td>${fmt(data.local.unit)} ${esc(data.local.currency)} (×${fmt(data.landedMultiplier)})</td></tr></table>
       ${data.disclaimer ? `<p class="note">${esc(data.disclaimer)}</p>` : ''}`;

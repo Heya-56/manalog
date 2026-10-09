@@ -9,16 +9,20 @@ import { executeTool } from '../src/mcp/server.js';
 import { runAgent } from '../src/agent/agent.js';
 import { handler } from '../src/lambda.js';
 
-test('landed cost: CIF + compounding VAT math is exact', () => {
+test('landed cost to Tahiti: official PF taxes from pacific-customs-kit, in whole francs', () => {
   const r = estimateLandedCost({ unitPriceUsd: 1, quantity: 1000, unitWeightKg: 0.1, origin: 'Fiji', destination: 'PF', mode: 'sea', category: 'packaging' });
-  // goods 1000, freight max(180, 0.9*100)=180, insurance 0.5% of 1180 = 5.9 → CIF 1185.9
+  // goods 1000, freight max(180, 0.9*100)=180, insurance 0.5% of 1180 = 5.9 → CIF 1185.9 USD = 130,449 XPF at 110
   assert.equal(r.breakdownUsd.cif, 1185.9);
-  const [duty, tdl, vat] = r.breakdownUsd.taxes;
-  assert.equal(duty.amountUsd, 59.3); // 5% of CIF
-  assert.equal(tdl.amountUsd, 118.59); // 10% of CIF
-  assert.equal(vat.baseUsd, 1363.79); // VAT compounds on CIF + previous taxes
+  assert.equal(r.engine, 'pacific-customs-kit');
+  const local = Object.fromEntries(r.breakdownUsd.taxes.map((t) => [t.name.split(' (')[0], t.amountLocal]));
+  assert.equal(local['Customs duty'], 6522);            // 5% illustrative
+  assert.equal(local['Environment and agriculture tax'], 2609); // TEA 2%
+  assert.equal(local['Port / airport toll'], 1631);      // 1.25%
+  assert.equal(local['Statistical tax'], 50);             // 50 XPF / 100 kg × 100 kg
+  assert.equal(local['Customs IT participation'], 85);
+  assert.equal(local.VAT, 22615);                         // 16% of 141,346
   assert.equal(r.local.currency, 'XPF');
-  assert.ok(r.disclaimer, 'unverified rates must carry a disclaimer');
+  assert.ok(r.disclaimer, 'unverified duty rates must carry a disclaimer');
 });
 
 test('landed cost: unknown destination is rejected', () => {
@@ -255,7 +259,7 @@ test('Fiji destination: landed cost follows the FRCS formula from pacific-custom
   assert.equal(r.distanceBand, 'near');
   const [duty, excise, vat] = r.breakdownUsd.taxes;
   assert.equal(vat.rate, 0.125);
-  assert.equal(vat.baseUsd, Math.round((r.breakdownUsd.cif + duty.amountUsd + excise.amountUsd) * 100) / 100, 'VAT on CIF + duty + excise');
+  assert.ok(Math.abs(vat.baseUsd - (r.breakdownUsd.cif + duty.amountUsd + excise.amountUsd)) <= 0.011, 'VAT on CIF + duty + excise (math done in FJD, shown in USD)');
   const kit = computeImportCharges({ country: 'FJ', valueForDuty: r.breakdownUsd.cif, category: 'packaging' });
   assert.ok(Math.abs(kit.totalCharges - (duty.amountUsd + excise.amountUsd + vat.amountUsd)) < 0.02, 'same result as the kit');
   assert.ok(r.disclaimer, 'duty rates stay illustrative');
@@ -289,6 +293,21 @@ test('customs check works on documents sent by an MCP client, and needs no paid 
     assert.equal(r.data.ok, true);
     assert.match(r.speech, /everything adds up/);
   } finally { delete process.env.MANALOG_ENFORCE_PLANS; }
+});
+
+test('customs check for French Polynesia: EUR invoice at the fixed peg, VAT on CIF + duty + taxes', async () => {
+  const { checkCustomsDocuments } = await import('../src/core/customs-check.js');
+  const invoice = {
+    documentType: 'commercial_invoice', invoiceNumber: 'FR-2026-77', seller: { name: 'Atelier Verre (demo)', country: 'FR' },
+    buyer: { name: 'Monoi Tiare (demo)', country: 'PF', tin: 'A12345' }, currency: 'EUR', incoterm: 'CIF',
+    lines: [{ description: 'Glass bottle 100 ml', hsCode: '701090', quantity: 5000, unitPrice: 0.2, lineTotal: 1000 }],
+    freight: 400, insurance: 10, total: 1410, grossWeightKg: 900,
+  };
+  const r = checkCustomsDocuments({ invoice, country: 'PF', dutyRate: 0, declared: { vat: 26900 } });
+  // CIF 1,410 EUR × 119.33 = 168,255 XPF; DD 0; TEA 3,365; toll 2,103; TS 450; PID 85; VAT 16% of 174,258 = 27,881
+  assert.equal(r.charges.valueForDuty, 168255);
+  assert.equal(r.charges.lines.find((l) => l.code === 'vat').amount, 27881);
+  assert.equal(r.errors[0].code, 'vat_discrepancy', 'a VAT 981 XPF too low is flagged');
 });
 
 test('voice router sends Fiji requests to the FJ destination', async () => {

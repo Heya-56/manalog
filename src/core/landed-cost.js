@@ -1,4 +1,5 @@
 // Landed-cost estimator: goods + freight + insurance → CIF, then stacked duties/taxes per destination profile.
+import { computeImportCharges } from 'pacific-customs-kit';
 import { dutyProfiles, freightRates, distanceBand, categoryHints } from '../../data/duty-profiles.js';
 
 export function guessCategory(product = '') {
@@ -36,19 +37,30 @@ export function estimateLandedCost(i, overrides = {}) {
   const freight = Math.max(fr.minimumUsd, fr[band] * weight);
   const insurance = 0.005 * (goods + freight);
   const cif = goods + freight + insurance;
-  const category = i.category && profile.categories[i.category] ? i.category : guessCategory(i.product);
-  const lines = profile.categories[category] ?? profile.categories.general;
+  const knownCats = ['packaging', 'food_raw', 'cosmetic_inputs', 'craft_materials', 'general'];
+  const category = i.category && (profile.categories?.[i.category] || (profile.kit && knownCats.includes(i.category))) ? i.category : guessCategory(i.product);
+  const fx = profile.fxPerUsd;
 
   let running = cif;
-  const taxes = lines.map((t) => {
-    const base = t.compound ? running : cif;
-    const amount = base * t.rate;
-    running += amount;
-    return { name: t.name, rate: t.rate, baseUsd: r2(base), amountUsd: r2(amount) };
-  });
+  let taxes;
+  let kitNotes = [];
+  if (profile.kit && !profile.categories) {
+    // Pacific profiles: exact local-currency math from pacific-customs-kit (official VAT base, fixed taxes, rounding).
+    const k = computeImportCharges({ country: profile.kit, valueForDuty: r2(cif * fx), category, weightKg: weight, lineCount: 1, dutyRate: i.dutyRate });
+    taxes = k.lines.map((l) => ({ name: l.name, rate: l.rate, baseUsd: r2(l.base / fx), amountUsd: r2(l.amount / fx), amountLocal: l.amount, rateSource: l.rateSource }));
+    running = cif + k.totalCharges / fx;
+    kitNotes = k.notes;
+  } else {
+    const lines = profile.categories[category] ?? profile.categories.general;
+    taxes = lines.map((t) => {
+      const base = t.compound ? running : cif;
+      const amount = base * t.rate;
+      running += amount;
+      return { name: t.name, rate: t.rate, baseUsd: r2(base), amountUsd: r2(amount) };
+    });
+  }
   const brokerage = dest === 'US' ? 125 : 95; // flat broker/handling estimate
   const total = running + brokerage;
-  const fx = profile.fxPerUsd;
   return {
     destination: dest, destinationName: profile.name, category, mode, distanceBand: band,
     transitDays: fr.transitDays[band], quantity: qty, totalWeightKg: r2(weight),
@@ -59,6 +71,8 @@ export function estimateLandedCost(i, overrides = {}) {
     verifiedRates: !!profile.verified,
     disclaimer: profile.verified ? null : 'Estimate using illustrative rates — confirm the HS code and rates with a licensed customs broker before ordering.',
     notes: profile.notes,
+    ...(kitNotes.length ? { calcNotes: kitNotes } : {}),
+    ...(profile.kit ? { engine: 'pacific-customs-kit' } : {}),
   };
 }
 

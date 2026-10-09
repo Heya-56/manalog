@@ -7,13 +7,13 @@ import { guessCategory } from './landed-cost.js';
  * @param {object} i
  * @param {object} i.invoice           commercial invoice (pacific-customs-kit schema)
  * @param {object} [i.billOfLading]
- * @param {object} [i.declared]        { fiscalDuty?, importExcise?, vat? } in the destination currency
+ * @param {object} [i.declared]        charges written on a draft entry, by charge code (fiscal_duty / fiscalDuty, customs_duty, vat...)
  * @param {string} [i.country='FJ']
  * @param {number} [i.fxRate]          destination currency per 1 unit of the invoice currency
  * @param {number} [i.fiscalDutyRate]  exact tariff rate if known
  * @param {number} [i.importExciseRate]
  */
-export function checkCustomsDocuments({ invoice, billOfLading, declared, country = 'FJ', fxRate, fiscalDutyRate, importExciseRate }) {
+export function checkCustomsDocuments({ invoice, billOfLading, declared, country = 'FJ', fxRate, fiscalDutyRate, dutyRate, importExciseRate }) {
   const profile = getProfile(country);
   const inv = checkInvoice(invoice);
   const cross = billOfLading ? crossCheck(invoice, billOfLading) : null;
@@ -26,9 +26,10 @@ export function checkCustomsDocuments({ invoice, billOfLading, declared, country
     const d = inv.invoice;
     let rate = fxRate;
     if (d.currency === profile.currency) rate = 1;
+    else if (rate == null && d.currency === 'EUR' && profile.fx.xpfPerEur) rate = profile.fx.xpfPerEur; // fixed peg
     else if (rate == null && d.currency === 'USD') {
-      rate = profile.fx.indicativeFjdPerUsd;
-      notes.push(`Converted at an indicative ${rate} ${profile.currency} per USD; customs uses the weekly ASYCUDA rate.`);
+      rate = profile.fx.indicativeFjdPerUsd ?? profile.fx.indicativeXpfPerUsd;
+      notes.push(`Converted at an indicative ${rate} ${profile.currency} per USD; customs uses its own official exchange rate.`);
     }
     if (rate == null) {
       notes.push(`No exchange rate for ${d.currency}: charges not computed.`);
@@ -36,7 +37,8 @@ export function checkCustomsDocuments({ invoice, billOfLading, declared, country
       const goods = d.lines.reduce((a, l) => a + l.lineTotal, 0);
       const valueForDuty = cifValue({ goods, freight: d.freight ?? 0, insurance: d.insurance ?? 0, fxRate: rate });
       if (d.freight == null) notes.push('No freight on the invoice: the value for duty is understated until freight is added.');
-      charges = computeImportCharges({ country, valueForDuty, fiscalDutyRate, importExciseRate, category: guessCategory(d.lines.map((l) => l.description).join(' ')) });
+      charges = computeImportCharges({ country, valueForDuty, dutyRate: dutyRate ?? fiscalDutyRate, exciseRate: importExciseRate, weightKg: d.grossWeightKg, lineCount: d.lines.length, category: guessCategory(d.lines.map((l) => l.description).join(' ')) });
+      notes.push(...charges.notes);
       if (declared) {
         comparison = compareCharges(declared, charges);
         issues.push(...comparison.issues);
@@ -66,6 +68,6 @@ export function speakCheck(r) {
   const first = r.errors.slice(0, 2).map((e) => spoken(e.message)).join(' ');
   const c = r.charges;
   const vat = c?.lines.find((l) => l.code === 'vat');
-  const tail = c ? ` Expected charges: about ${Math.round(c.totalCharges).toLocaleString('en-US')} ${c.currency}, including ${Math.round(vat.amount).toLocaleString('en-US')} ${c.currency} of VAT at ${vat.rate * 100} percent.` : '';
+  const tail = c ? ` Expected charges: about ${Math.round(c.totalCharges).toLocaleString('en-US')} ${c.currency}, including ${Math.round(vat.amount).toLocaleString('en-US')} ${c.currency} of VAT at ${+(vat.rate * 100).toFixed(2)} percent.` : '';
   return `${head}${count}${first ? ` ${first}` : ''}${tail}`;
 }
