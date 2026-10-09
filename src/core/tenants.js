@@ -10,7 +10,7 @@ export const PLANS = {
   whitelabel: { label: 'White-label', monthlyCalls: 20000, features: ['search', 'buyers', 'landed_cost', 'shipments', 'watchlist', 'mission', 'scrape', 'rfq', 'live_data', 'branding', 'custom_rates'] },
 };
 
-const DEFAULT_BRAND = { name: 'ManaLog', tagline: 'Voice sourcing for island makers', color: '#0E7C86', voiceName: 'ManaLog', locale: 'en-US' };
+const DEFAULT_BRAND = { name: 'ManaLog', tagline: 'Voice sourcing for island makers', color: '#8BFF2C', voiceName: 'ManaLog', locale: 'en-US' };
 
 function loadTenants() {
   const list = [];

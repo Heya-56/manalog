@@ -14,7 +14,9 @@ import { executeTool } from './mcp/server.js';
 import { bedrockEnabled } from './core/bedrock.js';
 import { config } from './core/config.js';
 
-const consoleHtml = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+// The official logo is inlined as a data URI so the console stays a single response (no static-file route).
+const logoUri = `data:image/webp;base64,${readFileSync(new URL('../public/manalog-logo.webp', import.meta.url)).toString('base64')}`;
+const consoleHtml = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8').replaceAll('__MANALOG_LOGO__', logoUri);
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
