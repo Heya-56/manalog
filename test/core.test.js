@@ -16,13 +16,26 @@ test('landed cost to Tahiti: official PF taxes from pacific-customs-kit, in whol
   assert.equal(r.engine, 'pacific-customs-kit');
   const local = Object.fromEntries(r.breakdownUsd.taxes.map((t) => [t.name.split(' (')[0], t.amountLocal]));
   assert.equal(local['Customs duty'], 6522);            // 5% illustrative
-  assert.equal(local['Environment and agriculture tax'], 2609); // TEA 2%
-  assert.equal(local['Port / airport toll'], 1631);      // 1.25%
+  assert.equal(local['Environment, agriculture and fisheries tax'], 2609); // TEAP 2%
+  assert.equal(local['Papeete port toll'], 1631);        // 1.25%, sea
   assert.equal(local['Statistical tax'], 50);             // 50 XPF / 100 kg × 100 kg
   assert.equal(local['Customs IT participation'], 85);
   assert.equal(local.VAT, 22615);                         // 16% of 141,346
   assert.equal(r.local.currency, 'XPF');
   assert.ok(r.disclaimer, 'unverified duty rates must carry a disclaimer');
+});
+
+test('landed cost to Tahiti uses the official tariff line when the product is known (glass bottles 7010.90)', () => {
+  const r = estimateLandedCost({ unitPriceUsd: 0.4, quantity: 2000, unitWeightKg: 0.2, origin: 'China', destination: 'PF', mode: 'sea', product: 'glass bottle' });
+  assert.equal(r.tariffLine.code, '70109000');
+  assert.match(r.tariffLine.classification, /suggested/);
+  const names = r.breakdownUsd.taxes.map((t) => t.name);
+  assert.ok(names.some((n) => n.startsWith('Imported electrical equipment tax')), 'TEEI 1% from the official line');
+  assert.equal(r.breakdownUsd.taxes[0].rate, 0.13, 'standard customs duty 13%');
+  assert.ok(r.breakdownUsd.taxes.every((t) => ['official-tariff', 'official'].includes(t.rateSource)));
+  const air = estimateLandedCost({ unitPriceUsd: 0.4, quantity: 200, unitWeightKg: 0.2, origin: 'China', destination: 'PF', mode: 'air', product: 'glass bottle' });
+  assert.ok(air.breakdownUsd.taxes.some((t) => t.name.startsWith("Faa'a freight station fee")));
+  assert.ok(!air.breakdownUsd.taxes.some((t) => t.name.startsWith('Papeete port toll')));
 });
 
 test('landed cost: unknown destination is rejected', () => {

@@ -10,6 +10,14 @@ export function guessCategory(product = '') {
 
 const r2 = (n) => Math.round(n * 100) / 100;
 
+// Suggested national tariff lines for unambiguous demo products (the classification must still be confirmed).
+const SUGGESTED_LINES = [
+  { words: ['glass bottle', 'flacon', 'bouteille en verre'], hs: '70109000' },
+  { words: ['vanilla', 'vanille'], hs: '09051000' },
+  { words: ['kraft', 'paper bag', 'sac papier'], hs: '48194000' },
+];
+export const suggestTariffLine = (product = '') => SUGGESTED_LINES.find((x) => x.words.some((w) => product.toLowerCase().includes(w)))?.hs ?? null;
+
 /**
  * @param {object} i
  * @param {number} i.unitPriceUsd  FOB/ex-works unit price
@@ -44,9 +52,12 @@ export function estimateLandedCost(i, overrides = {}) {
   let running = cif;
   let taxes;
   let kitNotes = [];
+  let tariffLine = null;
   if (profile.kit && !profile.categories) {
     // Pacific profiles: exact local-currency math from pacific-customs-kit (official VAT base, fixed taxes, rounding).
-    const k = computeImportCharges({ country: profile.kit, valueForDuty: r2(cif * fx), category, weightKg: weight, lineCount: 1, dutyRate: i.dutyRate });
+    const hsCode = i.hsCode ?? suggestTariffLine(i.product);
+    const k = computeImportCharges({ country: profile.kit, valueForDuty: r2(cif * fx), category, weightKg: weight, lineCount: 1, dutyRate: i.dutyRate, hsCode, mode: mode === 'air' ? 'air' : 'sea' });
+    if (k.tariffLine) tariffLine = { ...k.tariffLine, classification: i.hsCode ? 'given' : 'suggested — confirm the HS code' };
     taxes = k.lines.map((l) => ({ name: l.name, rate: l.rate, baseUsd: r2(l.base / fx), amountUsd: r2(l.amount / fx), amountLocal: l.amount, rateSource: l.rateSource }));
     running = cif + k.totalCharges / fx;
     kitNotes = k.notes;
@@ -73,6 +84,7 @@ export function estimateLandedCost(i, overrides = {}) {
     notes: profile.notes,
     ...(kitNotes.length ? { calcNotes: kitNotes } : {}),
     ...(profile.kit ? { engine: 'pacific-customs-kit' } : {}),
+    ...(tariffLine ? { tariffLine } : {}),
   };
 }
 

@@ -80,6 +80,7 @@ export const tools = [
       origin: z.string().describe('Origin country, e.g. "Vietnam"'), destination: dest,
       mode: z.enum(['sea', 'air', 'post']).default('sea'), product: z.string().optional(),
       category: z.enum(['packaging', 'food_raw', 'cosmetic_inputs', 'craft_materials', 'general']).optional(),
+      hsCode: z.string().optional().describe('Tariff code if known (e.g. 7010.90): uses the official tariff line where the destination profile has it'),
     },
     annotations: { readOnlyHint: true },
     async handler(ctx, a) {
