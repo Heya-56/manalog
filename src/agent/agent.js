@@ -109,7 +109,7 @@ async function routeOffline(ctx, raw, calls, { history = [], keyless = false, ch
   if (/what'?s new|watchlist|quoi de neuf|surveill/.test(t)) return call('check_watchlist', {});
   if (/plan|usage|account|compte|abonnement/.test(t)) return call('my_account', {});
   if (/https?:\/\//.test(raw)) return call('scrape_supplier_site', { url: raw.match(/https?:\/\/\S+/)[0] });
-  if (/buy|buyer|acheteur|export|sell|vendre/.test(t)) return call('find_buyers', { product: productIn(t) ?? 'vanilla' });
+  if (/buy|buyer|acheteur|clients?\b|customers?|export|sell|vendre/.test(t)) return call('find_buyers', { product: productIn(t) ?? 'vanilla' });
   if (/landed|cost|coût|cout|combien/.test(t) && numberIn(t)) {
     const d = destIn(t);
     return call('estimate_landed_cost', { unitPriceUsd: 0.34, quantity: numberIn(t), origin: d === 'FJ' ? 'China' : 'Vietnam', destination: d, product: productIn(t) ?? 'glass bottle' });

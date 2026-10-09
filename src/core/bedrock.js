@@ -2,6 +2,7 @@
 // and the voice agent loop (tool use). When BEDROCK_ENABLED=false we fall back to deterministic
 // templates so everything still works offline and in tests.
 import { config } from './config.js';
+import { dataScope } from './importyeti.js';
 
 let client, mod;
 async function c() {
@@ -12,7 +13,8 @@ async function c() {
   return client;
 }
 
-export const bedrockEnabled = () => config.bedrock.enabled;
+// Paid AI calls only when the deployment enables Bedrock AND the caller's plan allows AI (set per request in dataScope).
+export const bedrockEnabled = () => config.bedrock.enabled && dataScope.getStore()?.ai !== false;
 
 /** Single-shot text generation. */
 export async function generate(system, prompt, { maxTokens = config.bedrock.maxTokens, temperature = 0.3 } = {}) {

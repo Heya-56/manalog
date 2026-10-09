@@ -9,19 +9,27 @@ import { dataScope } from '../core/importyeti.js';
 import { config } from '../core/config.js';
 import { listDestinations } from '../core/landed-cost.js';
 
+/** Features any plan may run in free demo mode (demo data, no AI). */
+const DEMO_FEATURES = ['mission', 'rfq'];
+
 const cardHtml = readFileSync(new URL('../../public/mission-card.html', import.meta.url), 'utf8');
 
 /** Run a tool with plan checks + metering. Shared by MCP and the Bedrock voice agent. */
 export async function executeTool(ctx, name, rawArgs = {}) {
   const t = tools.find((x) => x.name === name);
   if (!t) return { error: true, speech: `Unknown tool ${name}`, data: null };
-  if (t.feature && !hasFeature(ctx, t.feature)) return { error: true, speech: upgradeMessage(ctx, t.feature), data: { upgrade: true } };
+  // Free demo: plans without a feature can still run it on bundled demo data with no AI calls (zero cost),
+  // so anyone can try the full workflow; the paid plan unlocks live data and Bedrock.
+  const demoOnly = t.feature && !hasFeature(ctx, t.feature);
+  if (demoOnly && !DEMO_FEATURES.includes(t.feature)) return { error: true, speech: upgradeMessage(ctx, t.feature), data: { upgrade: true } };
   const m = await meter(ctx, name);
   if (!m.ok) return { error: true, speech: `Monthly limit reached (${m.limit} calls). ${upgradeMessage(ctx, 'more calls')}`, data: { upgrade: true } };
   const args = z.object(t.schema).parse(rawArgs);
   try {
-    const mode = hasFeature(ctx, 'live_data') ? config.dataMode : 'demo';
-    return await dataScope.run({ mode }, () => t.handler(ctx, args));
+    const mode = !demoOnly && hasFeature(ctx, 'live_data') ? config.dataMode : 'demo';
+    const ai = !demoOnly && hasFeature(ctx, 'mission');
+    const out = await dataScope.run({ mode, ai }, () => t.handler(ctx, args));
+    return demoOnly && out?.data && typeof out.data === 'object' ? { ...out, data: { ...out.data, demoFallback: true } } : out;
   } catch (e) {
     return { error: true, speech: `Sorry, that failed: ${e.message}`, data: null };
   }

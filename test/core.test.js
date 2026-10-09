@@ -74,8 +74,12 @@ test('plans: enforced plans gate premium tools; self-host unlocks all', async ()
   try {
     assert.equal(hasFeature(anon, 'mission'), false);
     const r = await executeTool(anon, 'start_sourcing_mission', { product: 'vanilla' });
-    assert.equal(r.error, true);
-    assert.match(r.speech, /Upgrade|self-host/);
+    assert.equal(r.error, undefined, 'missions run as a free demo without a key');
+    assert.equal(r.data.demoFallback, true);
+    assert.equal(r.data.dataSource, 'demo');
+    const s = await executeTool(anon, 'scrape_supplier_site', { url: 'https://example.com' });
+    assert.equal(s.error, true, 'paid-only tools stay gated');
+    assert.match(s.speech, /Upgrade|self-host/);
     const judge = resolveContext({ apiKey: 'demo-judges-2026' });
     assert.equal(hasFeature(judge, 'mission'), true);
     assert.equal(resolveContext({ apiKey: 'wrong-key' }), null);
@@ -109,6 +113,8 @@ test('offline voice router handles the demo script (EN + FR)', async () => {
   assert.equal(r3.calls[0].args.language, 'fr');
   const r5 = await runAgent(ctx, { text: 'Find me 600 coconut oil' });
   assert.equal(r5.calls[0].args.quantity, 600, '3-digit quantities are not glued to the previous word');
+  const r6 = await runAgent(ctx, { text: 'des clients pour le monoï trouve-moi' });
+  assert.equal(r6.calls[0].name, 'find_buyers', '"clients" means buyers');
   const r4 = await runAgent(ctx, { text: 'Who buys vanilla in the US?' });
   assert.equal(r4.calls[0].name, 'find_buyers');
 });
@@ -342,4 +348,26 @@ test('document reading without Bedrock (community plan / pause mode) uses the sa
     assert.equal(res.statusCode, 200);
     assert.equal(JSON.parse(res.body).calls[0].data.errors.length, 2);
   } finally { delete process.env.MANALOG_ENFORCE_PLANS; }
+});
+
+test('no key in full mode: the flagship demo works, with demo data and no Bedrock call', async () => {
+  _resetStoreForTests(); _resetTenantsForTests();
+  const { config } = await import('../src/core/config.js');
+  const prev = { mode: config.dataMode, bedrock: config.bedrock.enabled };
+  config.dataMode = 'live'; config.bedrock.enabled = true;
+  process.env.MANALOG_ENFORCE_PLANS = 'true';
+  const realFetch = globalThis.fetch; let calls = 0;
+  globalThis.fetch = async (...a) => { calls++; return realFetch(...a); };
+  try {
+    const anon = resolveContext({ userHint: 'visitor' });
+    const r = await runAgent(anon, { text: 'Trouve-moi 2000 flacons pour mon monoï' });
+    assert.equal(r.engine, 'offline-router');
+    assert.equal(r.calls[0].name, 'start_sourcing_mission');
+    assert.equal(r.calls[0].data.dataSource, 'demo');
+    assert.equal(r.calls[0].data.rfq.generatedBy, 'template', 'no Bedrock call without a key');
+    assert.equal(calls, 0, 'no ImportYeti, Bedrock or web call without a key');
+  } finally {
+    globalThis.fetch = realFetch; config.dataMode = prev.mode; config.bedrock.enabled = prev.bedrock;
+    delete process.env.MANALOG_ENFORCE_PLANS;
+  }
 });
