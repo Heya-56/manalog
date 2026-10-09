@@ -3,6 +3,7 @@
 # Usage:  .\scripts\deploy.ps1                 (demo data)
 #         .\scripts\deploy.ps1 -IyKey "xxxx"   (live ImportYeti data)
 #         .\scripts\deploy.ps1 -BraveKey "x" -AliKey "x" -AliSecret "x" [-ComtradeKey "x"]   (extra live sources)
+#         .\scripts\deploy.ps1 -DemoData      (Bedrock on, fictional demo data: no ImportYeti credits; for recording the video)
 #         .\scripts\deploy.ps1 -Pause        (no spending: demo data + no Bedrock, even if a key was deployed before)
 param(
   [string]$IyKey = "",
@@ -15,7 +16,8 @@ param(
   [string]$AliTrackingId = "",
   [string]$ComtradeKey = "",
   [switch]$DisableBedrock,
-  [switch]$Pause
+  [switch]$Pause,
+  [switch]$DemoData
 )
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -59,7 +61,7 @@ Write-Host "4/5 SAM build + deploy" -ForegroundColor Cyan
 Set-Location infra
 sam build -t template.yaml
 if ($LASTEXITCODE -ne 0) { throw 'sam build failed' }
-$dataMode = if ($Pause) { "demo" } else { "auto" }
+$dataMode = if ($Pause -or $DemoData) { "demo" } else { "auto" }
 $params = @("DataMode=$dataMode", "BedrockEnabled=$bedrock", "BedrockModelId=$Model", "EnforcePlans=true", "JudgesKey=$JudgesKey")
 if ($IyKey) { $params += "ImportYetiApiKey=$IyKey" }
 # Extra sources: omitted keys keep their previously deployed value (sam deploy reuses parameters).

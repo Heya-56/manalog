@@ -1,33 +1,46 @@
-# Demo video script (under 3 min, English, no copyrighted music)
+# Demo video script — 2 min 55 s, English
 
-> Rules: public on YouTube or Vimeo; show the project working; no third-party logos or trademarks on screen (no ImportYeti, AliExpress, FRCS or ASYCUDA logos; saying a data source's name is fine, showing its logo is not); demo companies stay fictional "(demo)"; no copyrighted music (silence or royalty-free with a licence you hold).
+> Rules: under 3 minutes; public on YouTube or Vimeo; show the project working; no third-party logos or trademarks on screen (saying a data source's name is fine, showing its logo is not); demo companies stay fictional "(demo)"; no copyrighted music (silence is fine).
+>
+> Before recording, deploy with `scripts/deploy.ps1 -DemoData`: Bedrock on (voice agent + photo reading), fictional demo suppliers, zero ImportYeti credits. Rehearse freely, then run once each: "Find me 1500 kraft paper bags at 25 cents each", "Find me 600 coconut oil" so the dashboard has data.
+> Recording: the hosted console with the judges' key (`?key=…`), browser full screen, language EN. Title cards: `docs/video/01-intro.png`, `02-architecture.png`, `03-outro.png` (1920×1080).
+> **VO** = voice-over to read. **SAY** = what you say to the console's microphone (or type). About 320 words of voice-over in total: read slowly, it fits.
 
-**0:00–0:20 · Hook** (b-roll of artisan products, or plain title cards)
-"In Tahiti or Fiji, a small business that imports 2,000 glass bottles is thousands of kilometres from any factory, with no purchasing team and no customs department. This is ManaLog."
+---
 
-**0:20–1:25 · The mission** (screen: voice console, speak into the mic)
-- Say: *"Find me 2000 glass bottles for my monoi."*
-- Show the agent trace (`tools/call → start_sourcing_mission`), then the card: 3 suppliers, scores, **XPF per unit landed**, the RFQ draft.
-- Open "Why this score" and "Agent steps (6)": customs data → enrich → score → landed cost → re-rank → RFQ.
-- Say: *"Compare the suppliers."* This shows state persisting across turns and sessions.
-- Say: *"Send it."* → "RFQ approved", one tap to email. "Nothing is sent without me."
+## 1 · Hook — 0:00–0:15 · card `01-intro.png`
+**VO:** "In Tahiti and Fiji, small businesses import everything across thousands of kilometres of ocean, with no purchasing team and no customs department. ManaLog gives them both, by voice."
 
-**1:25–1:55 · Pacific customs check (Fiji)**
-- Tap the camera and photograph the printed sample invoice (`docs/samples/sample-invoice-photo.jpg`), or pick the file.
-- Show the card: "Read by Amazon Bedrock (strict JSON Schema)", the hard-to-read spots, then the problems. "The handwritten draft entry still uses Fiji's old 15% VAT; it has been 12.5% since August 2025." Then say *"Check my invoice for Suva"* to show the full file with the bill of lading issued for the wrong port (Lautoka).
-- "The model never computes a tax: the math comes from pacific-customs-kit, our new open-source library, with an official source for every rate."
+## 2 · Sourcing mission — 0:15–1:05 · console, Live tab
+- Click the mic. **SAY:** "Find me 2000 glass bottles for my monoi."
+- **VO** (while it thinks): "One sentence starts an agentic workflow. Claude on Amazon Bedrock calls ManaLog's MCP tools: customs shipment records, supplier scoring, landed cost to Tahiti, and a quote request. In this demo, the companies are fictional."
+- Point at the card: 3 suppliers, scores, XPF per unit landed. Open "Why this score".
+- **VO:** "Every score is explainable, and every price includes freight, duties and VAT."
+- **SAY:** "Compare the suppliers." → then **SAY:** "Send it."
+- **VO:** "Nothing reaches a supplier without my approval: I get a ready email, and I send it myself. And the mission is remembered across sessions."
 
-**1:55–2:10 · Export side**
-- Say: *"Who buys vanilla in the US?"* → US importers card. "The same data that finds suppliers finds customers."
+## 3 · Pacific customs check — 1:05–1:40 · console, camera button
+- Click the camera, pick `sample-invoice-photo.jpg` (a fictional invoice photographed on the wharf).
+- **VO:** "Now the paperwork. I photograph an invoice on the wharf in Suva. Bedrock reads it into a strict JSON schema, and flags what it could not read instead of guessing."
+- Point at the red problem: VAT 1,696.82 vs 1,414.02 FJD.
+- **VO:** "The handwritten draft still uses Fiji's old fifteen percent VAT. It has been twelve and a half percent since August 2025. The AI never computes a tax: the math comes from pacific-customs-kit, our new open-source library, with an official source for every rate."
 
-**2:10–2:35 · Under the hood** (architecture diagram from the README plus the terminal)
-- `npm run e2e`: the official MCP SDK client lists the 15 tools on the Lambda endpoint (protocol 2025-11-25).
-- "Alexa+ connects to this same endpoint. Bedrock runs the agent, DynamoDB remembers missions, Lambda hosts it all."
-- If you have Alexa+ access: 10 seconds of the real device calling ManaLog.
+## 4 · Export side — 1:40–1:55 · console
+- **SAY:** "Who buys vanilla in the US?"
+- **VO:** "The same data that finds suppliers also finds customers for Pacific exports."
 
-**2:35–2:52 · Business & open source**
-- Show `my_account` and the white-label brand switch (tenant JSON → new name and color).
-- "Open source: ManaLog under AGPL, pacific-customs-kit under MIT. Self-host for free, or take the white-label plan for chambers of commerce, co-ops and customs brokers."
+## 5 · Dashboard — 1:55–2:15 · Dashboard tab
+- Click "Dashboard". Show the KPIs and the chart.
+- **VO:** "The dashboard shows every mission and what shipping and taxes really add. On small island orders, the delivered cost can be several times the factory price. ManaLog makes that visible before you order."
 
-**2:52–2:59 · Close**
-"ManaLog: the import-export team every Pacific business deserves, one sentence away."
+## 6 · Under the hood — 2:15–2:40 · card `02-architecture.png`
+- **VO:** "ManaLog is a self-hosted MCP server, spec 2025-11-25, on AWS Lambda. Amazon Bedrock runs the agent and reads documents, DynamoDB keeps each customer's data separate. Alexa+ calls the same fifteen tools as this console."
+
+## 7 · Business and close — 2:40–2:55 · card `03-outro.png`
+- **VO:** "Demos and customs checks are free. Live searches use prepaid credits, and customs agents subscribe. ManaLog is open source. ManaLog: the import-export team every Pacific business deserves, one sentence away."
+
+---
+
+## Upload (YouTube)
+- Title: `ManaLog — voice import-export copilot for Pacific Island businesses (Alexa+ MCP · AWS)`
+- Visibility: **Public**. Description: the tagline, the two GitHub links, "Demo companies are fictional."
