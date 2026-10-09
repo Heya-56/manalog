@@ -41,6 +41,17 @@ Voice agents need *explainable* numbers; "score 90" means nothing until you hear
 ## What's next
 Verified tariff profiles with Tahiti customs brokers, group purchasing (one mission shared by several artisans, consolidated through the ManaLog logistics hub), OAuth account linking, and more trade datasets (EU and Pacific).
 
+## Business model (pricing hypothesis, to validate with first customers)
+- **Free, forever:** landed-cost estimates, customs checks of typed or demo documents, the full demo on fictional data. These cost us nothing to run (pure computation), so they are the top of the funnel.
+- **Prepaid credits** for actions that cost us money, priced at about 3x our cost:
+  - photo/PDF reading by Amazon Bedrock: 1 credit (about 2 US cents of cost)
+  - live buyer search: 2 credits; live supplier search: 4 credits (customs-data queries)
+  - full sourcing mission (live data + AI + RFQ): 10 credits (about 0.40 to 0.60 USD of cost)
+- **Packs:** Starter 9 USD = 50 credits (5 live missions) · Pro 29 USD = 200 credits · Business 79 USD = 600 credits. New accounts get 10 free credits.
+- **Subscriptions for professionals** (customs agents, freight forwarders, importer co-ops in Fiji and French Polynesia): unlimited document checks and a monthly credit allowance, about 99 to 199 USD per month; white-label licences for chambers of commerce.
+- **Margin lever:** customs-data results are cached per product for 30 days and shared across customers, so the second artisan who sources glass bottles costs us almost nothing.
+- Payments via Stripe Checkout; the credit wallet extends the existing per-tenant metering in DynamoDB.
+
 ## Built with
 alexa-plus, model-context-protocol, aws-lambda, amazon-bedrock, amazon-dynamodb, aws-sam, node.js, claude, web-speech-api, importyeti, brave-search-api, aliexpress-api, un-comtrade, zod, pacific-customs-kit
 
