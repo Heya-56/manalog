@@ -3,6 +3,7 @@
 //   /dashboard → read-only summary of the user's missions, usage and watchlist (no paid calls)
 //   /document → read a photo/PDF of a trade document and run the customs check (POST, base64 JSON)
 //   /agent   → voice agent (Bedrock tool-use loop) for the Alexa+ simulation console
+//   /depot/* → depot (warehouse) API, /depot → depot console (public/depot.html)
 //   /        → the voice console (public/index.html)
 import { readFileSync } from 'node:fs';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
@@ -13,10 +14,12 @@ import { dashboardSummary } from './core/dashboard.js';
 import { executeTool } from './mcp/server.js';
 import { bedrockEnabled } from './core/bedrock.js';
 import { config } from './core/config.js';
+import { depotRoute } from './depot-api.js';
 
 // The official logo is inlined as a data URI so the console stays a single response (no static-file route).
 const logoUri = `data:image/webp;base64,${readFileSync(new URL('../public/manalog-logo.webp', import.meta.url)).toString('base64')}`;
 const consoleHtml = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8').replaceAll('__MANALOG_LOGO__', logoUri);
+const depotHtml = readFileSync(new URL('../public/depot.html', import.meta.url), 'utf8').replaceAll('__MANALOG_LOGO__', logoUri);
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
@@ -44,6 +47,10 @@ export async function handle(req) {
     return new Response(consoleHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 
+  if (url.pathname === '/depot' || url.pathname === '/depot/') {
+    return new Response(depotHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
+
   const ctx = ctxFrom(req);
   if (!ctx) return json({ error: 'Invalid API key' }, 401);
 
@@ -61,6 +68,8 @@ export async function handle(req) {
       await server.close().catch(() => {});
     }
   }
+
+  if (url.pathname.startsWith('/depot/')) return depotRoute(ctx, req, url, json);
 
   if (url.pathname === '/dashboard' && req.method === 'GET') {
     try { return json(await dashboardSummary(ctx)); } catch (e) { console.error(e); return json({ error: e.message }, 500); }

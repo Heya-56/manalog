@@ -15,6 +15,8 @@ import { config } from '../core/config.js';
 import { checkCustomsDocuments, speakCheck } from '../core/customs-check.js';
 import { extractDocument } from '../core/doc-extract.js';
 import { hasFeature } from '../core/tenants.js';
+import * as depot from '../core/depot.js';
+import { store } from '../core/store.js';
 import { demoDocuments, DEFAULT_DEMO_DOCUMENT } from '../../data/demo-documents.js';
 
 const dest = z.string().default('PF').describe('Destination profile code: PF (French Polynesia/Tahiti), FJ (Fiji), US, FR');
@@ -226,6 +228,39 @@ export const tools = [
       if (!r.length) return { speech: 'Your watchlist is empty.', data: { items: [] } };
       const changed = r.filter((x) => x.changes.length);
       return { speech: changed.length ? changed.map((x) => `${x.name}: ${x.changes.join(', ')}`).join('. ') : `No changes for your ${r.length} watched supplier${r.length > 1 ? 's' : ''}.`, data: { items: r } };
+    },
+  },
+  {
+    name: 'depot_overview', title: 'Depot: what needs doing', feature: 'depot',
+    description: 'Warehouse status for the depot operator: orders to pick, pack, label and ship, parcels in transit, open inbound shipments, customs still pending, low stock and quarantined units.',
+    schema: {}, annotations: { readOnlyHint: true },
+    async handler(ctx) {
+      const o = await depot.overview(ctx);
+      const todo = [o.toPick && `${o.toPick} to pick`, o.toPack && `${o.toPack} to pack`, o.toLabel && `${o.toLabel} to label`, o.toShip && `${o.toShip} to ship`].filter(Boolean);
+      const speech = `${todo.length ? `Orders: ${todo.join(', ')}.` : 'No orders waiting.'} ${o.inTransit} in transit. ${o.customsPending ? `${o.customsPending} inbound waiting for customs. ` : ''}${o.lowStock.length ? `Low stock: ${o.lowStock.join(', ')}.` : ''}`.trim();
+      return { speech, data: o };
+    },
+  },
+  {
+    name: 'depot_stock', title: 'Depot: stock level', feature: 'depot',
+    description: 'Stock held at the depot for a seller or one product: on hand, reserved for orders, available, quarantined, and in which bins.',
+    schema: { owner: z.string().optional().describe('Seller id'), sku: z.string().optional().describe('Product reference') },
+    annotations: { readOnlyHint: true },
+    async handler(ctx, a) {
+      const rows = await depot.stockOf(ctx, a);
+      if (!rows.length) return { speech: 'No stock found for that.', data: { stock: [] } };
+      return { speech: rows.slice(0, 5).map((r) => `${r.name}: ${r.available} available${r.reserved ? `, ${r.reserved} reserved` : ''}`).join('. ') + '.', data: { stock: rows } };
+    },
+  },
+  {
+    name: 'depot_order_status', title: 'Depot: where is an order', feature: 'depot',
+    description: 'Status and tracking of a depot order (new, picking, packed, labeled, shipped, delivered, returned), with carrier and island.',
+    schema: { order: z.string().describe('Order id, e.g. ORD-00012') },
+    annotations: { readOnlyHint: true },
+    async handler(ctx, a) {
+      const o = await store().get(depot.depotPk(ctx), `ORD#${a.order.toUpperCase()}`);
+      if (!o) return { speech: `I can't find order ${a.order}.`, data: null };
+      return { speech: `Order ${o.id} for ${o.shipTo.name} in ${o.shipTo.island} is ${o.status.replace('_', ' ')}${o.tracking ? `, tracking ${o.tracking} by ${o.carrier}` : ''}.`, data: o };
     },
   },
   {

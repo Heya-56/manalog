@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ManaLog Dépôt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand: #8BFF2C; --on-brand: #071107; --coral: #FF7A59; --warn: #F2C230;
+    --bg: #050706; --panel: #0C110E; --ink: #EAF2ED; --muted: #8F9D96; --line: #1B2520; --chip: #121A15;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --brand: #2E8B0F; --on-brand: #FFFFFF; --bg: #F3F6F2; --panel: #FFFFFF; --ink: #0E1A12; --muted: #56655C;
+    --line: #DCE5DE; --chip: #EAF1EA; --coral: #C2502F; --warn: #9A7400; color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-left)) 48px max(16px, env(safe-area-inset-right)); display: flex; flex-direction: column; gap: 16px; }
+  header { display: flex; align-items: center; gap: 12px; }
+  header img { width: 36px; height: 36px; border-radius: 8px; }
+  h1, h2, .kpi .v, .tab { font-family: 'Exo 2', system-ui, sans-serif; }
+  h1 { font-size: 22px; margin: 0; } h2 { font-size: 17px; margin: 0 0 10px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .kpi .v { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .kpi.alert .v { color: var(--coral); }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; }
+  .tab { background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .tab[aria-selected="true"] { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .list { display: flex; flex-direction: column; gap: 8px; }
+  .row { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+  .row .t { font-weight: 600; } .row .s { color: var(--muted); font-size: 13px; }
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--chip); border: 1px solid var(--line); margin-left: 6px; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); } .pill.bad { color: var(--coral); border-color: var(--coral); }
+  button.act, form button { background: var(--brand); color: var(--on-brand); border: 0; border-radius: 8px; padding: 9px 14px; font-weight: 700; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; align-items: end; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input, select, textarea { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; min-width: 0; }
+  pre.labelprint { background: #fff; color: #000; font: 13px/1.4 ui-monospace, monospace; padding: 12px; border-radius: 6px; white-space: pre-wrap; margin: 8px 0 0; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; } th, td { border-bottom: 1px solid var(--line); padding: 7px 6px; text-align: left; } td.n, th.n { text-align: right; }
+  .tw { overflow-x: auto; }
+  #toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; max-width: 90vw; }
+  #toast.bad { border-color: var(--coral); color: var(--coral); }
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="__MANALOG_LOGO__" alt="">
+    <div><h1>ManaLog Dépôt</h1><div class="muted">Réception, stock, préparation, expédition et facturation</div></div>
+    <span style="flex:1"></span>
+    <button class="ghost" id="themeBtn" aria-label="Changer de thème">Thème</button>
+  </header>
+
+  <section class="panel" id="keyPanel" hidden>
+    <h2>Connexion</h2>
+    <form id="keyForm"><label>Clé API du dépôt<input id="keyInput" required autocomplete="off"></label><button>Ouvrir le dépôt</button></form>
+    <p class="muted">La clé reste dans ce navigateur. Sur une instance auto-hébergée sans plans, n'importe quelle valeur fonctionne.</p>
+  </section>
+
+  <section class="kpis" id="kpis" aria-live="polite"></section>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="todo" aria-selected="true">À faire</button>
+    <button class="tab" role="tab" data-tab="inbound" aria-selected="false">Réception</button>
+    <button class="tab" role="tab" data-tab="stock" aria-selected="false">Stock</button>
+    <button class="tab" role="tab" data-tab="new" aria-selected="false">Nouveau</button>
+    <button class="tab" role="tab" data-tab="billing" aria-selected="false">Facturation</button>
+  </nav>
+
+  <section id="tab-todo" class="stack"></section>
+
+  <section id="tab-inbound" class="stack" hidden>
+    <div class="panel"><h2>Arrivages</h2><div class="list" id="inboundList"></div></div>
+    <div class="panel"><h2>Réceptionner</h2>
+      <form id="receiveForm">
+        <label>Arrivage<input name="inbound" placeholder="IN-00001" required></label>
+        <label>Produit (SKU)<input name="sku" required></label>
+        <label>Quantité bonne<input name="qty" type="number" min="0" value="0" required></label>
+        <label>Abîmés<input name="damaged" type="number" min="0" value="0"></label>
+        <label>Emplacement<input name="bin" placeholder="A-01-1" required></label>
+        <button>Réceptionner</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="tab-stock" class="stack" hidden>
+    <div class="panel"><h2>Stock par produit</h2><div class="tw"><table><thead><tr><th>Produit</th><th>Vendeur</th><th class="n">Dispo</th><th class="n">Réservé</th><th class="n">Quarantaine</th><th>Emplacements</th></tr></thead><tbody id="stockBody"></tbody></table></div></div>
+  </section>
+
+  <section id="tab-new" class="stack" hidden>
+    <div class="panel"><h2>Nouvelle commande</h2>
+      <form id="orderForm">
+        <label>Vendeur<input name="owner" required></label>
+        <label>Client<input name="name" required></label>
+        <label>Île<input name="island" list="islands" required></label>
+        <label>Téléphone<input name="phone"></label>
+        <label style="grid-column:1/-1">Adresse (PK, servitude, repères)<input name="address"></label>
+        <label style="grid-column:1/-1">Lignes (une par ligne : SKU quantité)<textarea name="lines" rows="3" placeholder="MONOI-100 2" required></textarea></label>
+        <label>Paiement à la livraison (XPF)<input name="cod" type="number" min="0" value="0"></label>
+        <button>Créer la commande</button>
+      </form>
+      <datalist id="islands"></datalist>
+    </div>
+    <div class="panel"><h2>Annonce d'arrivage</h2>
+      <form id="inboundForm">
+        <label>Vendeur<input name="owner" required></label>
+        <label>Référence<input name="reference" placeholder="BL, conteneur…"></label>
+        <label>Type<select name="mode"><option value="local">Local</option><option value="import">Import (douane)</option></select></label>
+        <label style="grid-column:1/-1">Lignes (SKU quantité)<textarea name="lines" rows="3" required></textarea></label>
+        <button>Annoncer</button>
+      </form>
+    </div>
+    <div class="panel"><h2>Nouveau produit</h2>
+      <form id="skuForm">
+        <label>SKU<input name="sku" required></label><label>Vendeur<input name="owner" required></label><label>Nom<input name="name"></label>
+        <label>Poids (kg)<input name="weightKg" type="number" step="0.01" value="0.5"></label>
+        <label>L × l × h (cm)<input name="dims" placeholder="20 15 10" value="20 15 10"></label>
+        <label>Seuil de réappro<input name="reorderAt" type="number" min="0" value="0"></label>
+        <button>Enregistrer</button>
+      </form>
+    </div>
+    <div class="panel"><h2>Nouvel emplacement</h2>
+      <form id="binForm"><label>Code<input name="code" placeholder="A-01-1" required></label><label>Zone<input name="zone" value="A"></label><button>Ajouter</button></form>
+    </div>
+  </section>
+
+  <section id="tab-billing" class="stack" hidden>
+    <div class="panel"><h2>Facture du mois</h2>
+      <form id="billForm"><label>Vendeur<input name="owner" required></label><label>Mois<input name="month" type="month"></label><button>Calculer</button></form>
+      <div id="billOut"></div>
+    </div>
+  </section>
+</div>
+<div id="toast" hidden role="status"></div>
+
+<script>
+const ISLANDS = ['Tahiti','Moorea','Bora Bora','Raiatea','Huahine','Tahaa','Maupiti','Rangiroa','Fakarava','Tikehau','Manihi','Hao','Nuku Hiva','Hiva Oa','Ua Pou','Tubuai','Rurutu','Raivavae','Mangareva'];
+document.getElementById('islands').innerHTML = ISLANDS.map((i) => `<option value="${i}">`).join('');
+const STATUS_FR = { new: 'À préparer', picking: 'En préparation', picked: 'À emballer', packed: 'À étiqueter', labeled: 'À expédier', shipped: 'En transit', delivered: 'Livrée', failed_delivery: 'Échec livraison', returned: 'Retournée', cancelled: 'Annulée' };
+const NEXT = { new: ['picklist', 'Liste de prélèvement'], picking: ['pick', 'Confirmer le prélèvement'], picked: ['pack', 'Emballer'], packed: ['label', 'Étiqueter'], labeled: ['ship', 'Remettre au transporteur'], shipped: ['deliver', 'Livrée'] };
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const xpf = (n) => `${Number(n).toLocaleString('fr-FR')} F`;
+let key = new URLSearchParams(location.search).get('key');
+try { key = key || localStorage.getItem('manalog-depot-key'); if (key) localStorage.setItem('manalog-depot-key', key); } catch {}
+try { const t = localStorage.getItem('manalog-theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+document.getElementById('themeBtn').onclick = () => {
+  const t = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = t; try { localStorage.setItem('manalog-theme', t); } catch {}
+};
+
+function toast(msg, bad) { const t = document.getElementById('toast'); t.textContent = msg; t.className = bad ? 'bad' : ''; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => (t.hidden = true), 3500); }
+async function api(path, body) {
+  const r = await fetch(`/depot/${path}`, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(key ? { 'x-api-key': key } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { document.getElementById('keyPanel').hidden = false; throw new Error('Clé API invalide'); }
+  if (!r.ok) throw new Error(j.error || `Erreur ${r.status}`);
+  return j;
+}
+const parseLines = (txt) => txt.split('\n').map((l) => l.trim().split(/\s+/)).filter((p) => p[0]).map(([sku, q]) => ({ sku, qty: Number(q || 1) }));
+
+async function loadKpis() {
+  const o = await api('overview');
+  const k = [['À préparer', o.toPick], ['À emballer', o.toPack], ['À étiqueter', o.toLabel], ['À expédier', o.toShip], ['En transit', o.inTransit], ['Douane en attente', o.customsPending, o.customsPending > 0], ['Stock bas', o.lowStock.length, o.lowStock.length > 0]];
+  document.getElementById('kpis').innerHTML = k.map(([l, v, a]) => `<div class="kpi${a ? ' alert' : ''}"><div class="v">${v}</div><div class="muted">${l}</div></div>`).join('');
+}
+async function loadTodo() {
+  const orders = (await api('orders')).filter((o) => NEXT[o.status]);
+  const el = document.getElementById('tab-todo');
+  if (!orders.length) { el.innerHTML = '<div class="panel"><h2>Rien en attente</h2><p class="muted">Les nouvelles commandes apparaissent ici. Créez-en une dans l\'onglet Nouveau ou branchez un e-shop sur l\'API /depot/order.</p></div>'; return; }
+  el.innerHTML = `<div class="panel"><h2>Commandes en cours</h2><div class="list">${orders.map((o) => `
+    <div class="row"><div><div class="t">${esc(o.id)} · ${esc(o.shipTo.name)} <span class="pill${o.status === 'failed_delivery' ? ' bad' : ''}">${STATUS_FR[o.status]}</span></div>
+      <div class="s">${esc(o.shipTo.island)} (${esc(o.shipTo.zone)}) · ${o.lines.map((l) => `${l.qty}× ${esc(l.sku)}`).join(', ')}${o.cod ? ` · à encaisser ${xpf(o.cod)}` : ''}${o.tracking ? ` · suivi ${esc(o.tracking)}` : ''}</div>
+      ${o.status === 'packed' ? `<label style="margin-top:6px">Transporteur<select data-carrier="${o.id}">${o.quotes.map((q) => `<option value="${q.code}">${esc(q.label)} · ${xpf(q.priceXpf)} · ${q.days} j</option>`).join('')}</select></label>` : ''}
+      ${o.labelText ? `<pre class="labelprint">${esc(o.labelText)}</pre>` : ''}
+      <div id="pick-${o.id}"></div></div>
+      <button class="act" data-act="${NEXT[o.status][0]}" data-order="${o.id}">${NEXT[o.status][1]}</button></div>`).join('')}</div></div>`;
+}
+document.getElementById('tab-todo').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const order = b.dataset.order, act = b.dataset.act;
+  b.disabled = true;
+  try {
+    if (act === 'picklist') {
+      const stops = await api('picklist', { orders: [order] });
+      toast(`Prélèvement : ${stops.map((s) => `${s.bin} → ${s.qty}× ${s.sku}`).join(' · ')}`);
+    } else if (act === 'label') {
+      await api('label', { order, carrier: document.querySelector(`[data-carrier="${order}"]`)?.value });
+    } else await api(act, { order });
+    await refresh();
+  } catch (err) { toast(err.message, true); b.disabled = false; }
+});
+async function loadInbound() {
+  const list = await api('inbound');
+  document.getElementById('inboundList').innerHTML = list.length ? list.map((i) => `
+    <div class="row"><div><div class="t">${esc(i.id)} · ${esc(i.owner)} ${i.customs === 'pending' ? '<span class="pill warn">Douane en attente</span>' : ''}<span class="pill">${i.status === 'received' ? 'Reçu' : i.status === 'receiving' ? 'En cours' : 'Attendu'}</span></div>
+      <div class="s">${i.lines.map((l) => `${esc(l.sku)} : ${l.received}/${l.expected}${l.damaged ? ` (${l.damaged} abîmés)` : ''}`).join(' · ')}</div></div>
+      ${i.customs === 'pending' ? `<button class="act" data-customs="${i.id}">Dédouané</button>` : '<span></span>'}</div>`).join('') : '<p class="muted">Aucun arrivage annoncé.</p>';
+}
+document.getElementById('inboundList').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-customs]'); if (!b) return;
+  try { await api('customs', { inbound: b.dataset.customs });toast('Arrivage dédouané'); refresh(); } catch (err) { toast(err.message, true); }
+});
+async function loadStock() {
+  const rows = await api('stock');
+  document.getElementById('stockBody').innerHTML = rows.length ? rows.map((r) => `<tr><td>${esc(r.name)}<div class="muted">${esc(r.sku)}${r.reorder ? ' <span class="pill bad">Réappro</span>' : ''}</div></td><td>${esc(r.owner)}</td><td class="n">${r.available}</td><td class="n">${r.reserved}</td><td class="n">${r.quarantine}</td><td>${r.bins.map((b) => `${esc(b.bin)} (${b.qty})`).join(', ')}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">Pas encore de stock. Annoncez un arrivage puis réceptionnez-le.</td></tr>';
+}
+async function refresh() { await Promise.all([loadKpis(), loadTodo(), loadInbound(), loadStock()]).catch((e) => toast(e.message, true)); }
+
+function onSubmit(id, fn, okMsg) {
+  document.getElementById(id).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    try { const r = await fn(f); toast(typeof okMsg === 'function' ? okMsg(r) : okMsg); e.target.reset(); refresh(); } catch (err) { toast(err.message, true); }
+  });
+}
+onSubmit('receiveForm', (f) => api('receive', { inbound: f.inbound.trim().toUpperCase(), sku: f.sku.trim(), qty: Number(f.qty), damaged: Number(f.damaged || 0), bin: f.bin.trim().toUpperCase() }),
+  (r) => r.discrepancies.length ? `Reçu. Écarts : ${r.discrepancies.map((d) => `${d.sku} manque ${d.missing}, abîmés ${d.damaged}`).join(' · ')}` : 'Reçu, aucun écart');
+onSubmit('orderForm', (f) => api('order', { owner: f.owner, cod: Number(f.cod || 0), shipTo: { name: f.name, island: f.island, phone: f.phone, address: f.address }, lines: parseLines(f.lines) }), (o) => `Commande ${o.id} créée, stock réservé`);
+onSubmit('inboundForm', (f) => api('inbound', { owner: f.owner, reference: f.reference, mode: f.mode, lines: parseLines(f.lines) }), (i) => `Arrivage ${i.id} annoncé`);
+onSubmit('skuForm', (f) => { const [l, w, h] = f.dims.split(/\s+/).map(Number); return api('sku', { sku: f.sku.trim(), owner: f.owner, name: f.name, weightKg: Number(f.weightKg), l, w, h, reorderAt: Number(f.reorderAt) }); }, 'Produit enregistré');
+onSubmit('binForm', (f) => api('bin', { code: f.code.trim().toUpperCase(), zone: f.zone }), 'Emplacement ajouté');
+document.getElementById('billForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  try {
+    const inv = await api(`invoice?owner=${encodeURIComponent(f.owner)}${f.month ? `&month=${f.month}` : ''}`);
+    document.getElementById('billOut').innerHTML = `<div class="tw" style="margin-top:12px"><table><thead><tr><th>Prestation</th><th class="n">Qté</th><th class="n">PU</th><th class="n">Total</th></tr></thead><tbody>
+      ${inv.lines.map((l) => `<tr><td>${esc(l.label)}</td><td class="n">${l.qty}</td><td class="n">${xpf(l.unitXpf)}</td><td class="n">${xpf(l.totalXpf)}</td></tr>`).join('')}
+      <tr><td colspan="3">Prestations dépôt</td><td class="n">${xpf(inv.servicesXpf)}</td></tr>
+      <tr><td colspan="3">Débours transport (refacturés au coût)</td><td class="n">${xpf(inv.disbursementsXpf)}</td></tr>
+      <tr><th colspan="3">Total ${esc(inv.month)}</th><th class="n">${xpf(inv.totalXpf)}</th></tr></tbody></table></div>
+      <p class="muted">${inv.tariffVerified ? 'Tarif du dépôt appliqué.' : 'Tarif indicatif : enregistrez votre grille via /depot/tariff.'} Les taxes dépendent du statut de l'opérateur et sont ajoutées par sa comptabilité.</p>`;
+  } catch (err) { toast(err.message, true); }
+});
+document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
+  document.querySelectorAll('[id^="tab-"]').forEach((s) => (s.hidden = s.id !== `tab-${t.dataset.tab}`));
+}));
+document.getElementById('keyForm').addEventListener('submit', (e) => {
+  e.preventDefault(); key = document.getElementById('keyInput').value.trim();
+  try { localStorage.setItem('manalog-depot-key', key); } catch {}
+  document.getElementById('keyPanel').hidden = true; refresh();
+});
+refresh();
+</script>
+</body>
+</html>

@@ -6,8 +6,8 @@ import { store } from './store.js';
 
 export const PLANS = {
   community: { label: 'Community', monthlyCalls: 50, features: ['search', 'buyers', 'landed_cost', 'shipments', 'watchlist'] },
-  pro: { label: 'Pro', monthlyCalls: 2000, features: ['search', 'buyers', 'landed_cost', 'shipments', 'watchlist', 'mission', 'scrape', 'rfq', 'live_data'] },
-  whitelabel: { label: 'White-label', monthlyCalls: 20000, features: ['search', 'buyers', 'landed_cost', 'shipments', 'watchlist', 'mission', 'scrape', 'rfq', 'live_data', 'branding', 'custom_rates'] },
+  pro: { label: 'Pro', monthlyCalls: 2000, features: ['search', 'buyers', 'landed_cost', 'shipments', 'watchlist', 'mission', 'scrape', 'rfq', 'live_data', 'depot'] },
+  whitelabel: { label: 'White-label', monthlyCalls: 20000, features: ['search', 'buyers', 'landed_cost', 'shipments', 'watchlist', 'mission', 'scrape', 'rfq', 'live_data', 'branding', 'custom_rates', 'depot'] },
 };
 
 const DEFAULT_BRAND = { name: 'ManaLog', tagline: 'Voice sourcing for island makers', color: '#8BFF2C', voiceName: 'ManaLog', locale: 'en-US' };
