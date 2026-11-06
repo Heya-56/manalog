@@ -1,0 +1,35 @@
+# ManaLog Dispatch — courier & parcel dispatch for French Polynesia (Cloudflare Workers + D1 + R2, free tier).
+# Designed to migrate to AWS later (same data model, plain SQL, no Cloudflare-only logic outside src/platform.js).
+name = "manalog-dispatch"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "manalog_dispatch"
+database_id = "ca9a691a-7bba-40b2-aaad-3f9801d8b739"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "manalog-dispatch-files"
+
+[vars]
+APP_NAME = "ManaLog Dispatch"
+
+# Local tests: npx wrangler dev --env test (secrets in .dev.vars: SESSION_SECRET, CONSOLE_PASSWORD, API_KEY, DEV=1)
+[env.test]
+name = "manalog-dispatch-test"
+[[env.test.d1_databases]]
+binding = "DB"
+database_name = "manalog_dispatch_test"
+database_id = "local-test"
+migrations_dir = "migrations"
+[[env.test.r2_buckets]]
+binding = "FILES"
+bucket_name = "manalog-dispatch-files-test"
+[env.test.vars]
+APP_NAME = "ManaLog Dispatch (test)"
