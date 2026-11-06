@@ -1,0 +1,10 @@
+{
+  "name": "ManaLog — Coursier",
+  "short_name": "ManaLog",
+  "start_url": "/chauffeur",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0A0F0C",
+  "theme_color": "#0A0F0C",
+  "icons": [{ "src": "/manalog-logo.webp", "sizes": "504x336", "type": "image/webp", "purpose": "any" }]
+}
